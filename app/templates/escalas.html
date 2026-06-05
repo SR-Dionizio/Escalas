@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Escalas{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">📅 Escalas</h4>
+                <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+                    ➕ Nova Escala
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Semana</th>
+                                <th>Microfones</th>
+                                <th>Som</th>
+                                <th>Indicadores</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedules-table">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Schedule Modal -->
+<div class="modal fade" id="addScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Escala</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addScheduleForm">
+                    <div class="mb-3">
+                        <label class="form-label">Data da Semana (segunda-feira)</label>
+                        <input type="date" class="form-control" id="scheduleDate" required>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Microfone (2 pessoas)</h6>
+                    <div id="microfoneOptions" class="mb-3"></div>
+                    
+                    <h6 class="mt-4 mb-3">Sistema de Som (1 pessoa)</h6>
+                    <div id="somOptions" class="mb-3"></div>
+                    
+                    <h6 class="mt-4 mb-3">Indicadores (2 pessoas)</h6>
+                    <div id="indicadorOptions" class="mb-3"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="addSchedule()">Criar Escala</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Schedule Modal -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Escala</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editScheduleForm">
+                    <div class="mb-3">
+                        <label class="form-label">Data da Semana (segunda-feira)</label>
+                        <input type="date" class="form-control" id="editScheduleDate" disabled>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Microfone (2 pessoas)</h6>
+                    <div id="editMicrofoneOptions" class="mb-3"></div>
+                    
+                    <h6 class="mt-4 mb-3">Sistema de Som (1 pessoa)</h6>
+                    <div id="editSomOptions" class="mb-3"></div>
+                    
+                    <h6 class="mt-4 mb-3">Indicadores (2 pessoas)</h6>
+                    <div id="editIndicadorOptions" class="mb-3"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="updateSchedule()">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadSchedules() {
+    fetch('/api/schedules')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('schedules-table');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Nenhuma escala cadastrada</td></tr>';
+                return;
+            }
+            
+            data.forEach(s => {
+                const microfones = s.assignments.filter(a => a.role_name === 'MICROFONE').map(a => a.volunteer_name).join(', ');
+                const som = s.assignments.filter(a => a.role_name === 'SOM').map(a => a.volunteer_name).join(', ');
+                const indicadores = s.assignments.filter(a => a.role_name === 'INDICADOR').map(a => a.volunteer_name).join(', ');
+                
+                const row = `
+                    <tr>
+                        <td>${s.week_date}</td>
+                        <td>${microfones || '-'}</td>
+                        <td>${som || '-'}</td>
+                        <td>${indicadores || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editSchedule(${s.id})">✏️ Editar</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteSchedule(${s.id})">🗑️ Deletar</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        });
+}
+
+function loadVolunteersForSchedule() {
+    fetch('/api/volunteers?ativo_only=true')
+        .then(r => r.json())
+        .then(volunteers => {
+            const microfoneDiv = document.getElementById('microfoneOptions');
+            const somDiv = document.getElementById('somOptions');
+            const indicadorDiv = document.getElementById('indicadorOptions');
+            
+            microfoneDiv.innerHTML = '';
+            somDiv.innerHTML = '';
+            indicadorDiv.innerHTML = '';
+            
+            volunteers.forEach(v => {
+                if (v.roles.includes('MICROFONE')) {
+                    const label = document.createElement('div');
+                    label.className = 'form-check';
+                    label.innerHTML = `
+                        <input class="form-check-input microfone-check" type="checkbox" value="${v.id}" id="mic${v.id}">
+                        <label class="form-check-label" for="mic${v.id}">${v.nome}</label>
+                    `;
+                    microfoneDiv.appendChild(label);
+                }
+                
+                if (v.roles.includes('SOM')) {
+                    const label = document.createElement('div');
+                    label.className = 'form-check';
+                    label.innerHTML = `
+                        <input class="form-check-input som-check" type="radio" name="som" value="${v.id}" id="som${v.id}">
+                        <label class="form-check-label" for="som${v.id}">${v.nome}</label>
+                    `;
+                    somDiv.appendChild(label);
+                }
+                
+                if (v.roles.includes('INDICADOR')) {
+                    const label = document.createElement('div');
+                    label.className = 'form-check';
+                    label.innerHTML = `
+                        <input class="form-check-input indicador-check" type="checkbox" value="${v.id}" id="ind${v.id}">
+                        <label class="form-check-label" for="ind${v.id}">${v.nome}</label>
+                    `;
+                    indicadorDiv.appendChild(label);
+                }
+            });
+        });
+}
+
+function loadVolunteersForEditSchedule(currentAssignments) {
+    fetch('/api/volunteers?ativo_only=true')
+        .then(r => r.json())
+        .then(volunteers => {
+            const microfoneDiv = document.getElementById('editMicrofoneOptions');
+            const somDiv = document.getElementById('editSomOptions');
+            const indicadorDiv = document.getElementById('editIndicadorOptions');
+            
+            microfoneDiv.innerHTML = '';
+            somDiv.innerHTML = '';
+            indicadorDiv.innerHTML = '';
+            
+            // Get current assignments by role
+            const currentMicrofone = currentAssignments.filter(a => a.role_name === 'MICROFONE').map(a => a.volunteer_id);
+            const currentSom = currentAssignments.filter(a => a.role_name === 'SOM').map(a => a.volunteer_id)[0];
+            const currentIndicador = currentAssignments.filter(a => a.role_name === 'INDICADOR').map(a => a.volunteer_id);
+            
+            volunteers.forEach(v => {
+                if (v.roles.includes('MICROFONE')) {
+                    const label = document.createElement('div');
+                    label.className = 'form-check';
+                    const isChecked = currentMicrofone.includes(v.id) ? 'checked' : '';
+                    label.innerHTML = `
+                        <input class="form-check-input edit-microfone-check" type="checkbox" value="${v.id}" id="editMic${v.id}" ${isChecked}>
+                        <label class="form-check-label" for="editMic${v.id}">${v.nome}</label>
+                    `;
+                    microfoneDiv.appendChild(label);
+                }
+                
+                if (v.roles.includes('SOM')) {
+                    const label = document.createElement('div');
+                    label.className = 'form-check';
+                    const isChecked = currentSom === v.id ? 'checked' : '';
+                    label.innerHTML = `
+                        <input class="form-check-input edit-som-check" type="radio" name="editSom" value="${v.id}" id="editSom${v.id}" ${isChecked}>
+                        <label class="form-check-label" for="editSom${v.id}">${v.nome}</label>
+                    `;
+                    somDiv.appendChild(label);
+                }
+                
+                if (v.roles.includes('INDICADOR')) {
+                    const label = document.createElement('div');
+                    label.className = 'form-check';
+                    const isChecked = currentIndicador.includes(v.id) ? 'checked' : '';
+                    label.innerHTML = `
+                        <input class="form-check-input edit-indicador-check" type="checkbox" value="${v.id}" id="editInd${v.id}" ${isChecked}>
+                        <label class="form-check-label" for="editInd${v.id}">${v.nome}</label>
+                    `;
+                    indicadorDiv.appendChild(label);
+                }
+            });
+        });
+}
+
+function addSchedule() {
+    const dateInput = document.getElementById('scheduleDate').value;
+    
+    if (!dateInput) {
+        alert('Selecione uma data');
+        return;
+    }
+    
+    // Convert YYYY-MM-DD to DD/MM/YYYY
+    const [year, month, day] = dateInput.split('-');
+    const weekDate = `${day}/${month}/${year}`;
+    
+    const microfoneChecked = Array.from(document.querySelectorAll('.microfone-check:checked')).map(c => parseInt(c.value));
+    const somChecked = document.querySelector('.som-check:checked');
+    const indicadorChecked = Array.from(document.querySelectorAll('.indicador-check:checked')).map(c => parseInt(c.value));
+    
+    if (microfoneChecked.length !== 2 || !somChecked || indicadorChecked.length !== 2) {
+        alert('Selecione: 2 microfones, 1 som e 2 indicadores');
+        return;
+    }
+    
+    const assignments = {
+        'MICROFONE': microfoneChecked,
+        'SOM': [parseInt(somChecked.value)],
+        'INDICADOR': indicadorChecked
+    };
+    
+    fetch('/api/schedules', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({week_date: weekDate, assignments})
+    })
+    .then(r => r.json())
+    .then(() => {
+        document.getElementById('addScheduleForm').reset();
+        bootstrap.Modal.getInstance(document.getElementById('addScheduleModal')).hide();
+        loadSchedules();
+    })
+    .catch(e => alert('Erro ao criar escala: ' + e));
+}
+
+function editSchedule(id) {
+    fetch(`/api/schedules/${id}`)
+        .then(r => r.json())
+        .then(schedule => {
+            // Store the schedule ID for later use in updateSchedule
+            document.getElementById('editScheduleForm').dataset.scheduleId = id;
+            
+            // Convert DD/MM/YYYY to YYYY-MM-DD for the date input
+            const [day, month, year] = schedule.week_date.split('/');
+            const isoDate = `${year}-${month}-${day}`;
+            document.getElementById('editScheduleDate').value = isoDate;
+            
+            // Load volunteers with current assignments checked
+            loadVolunteersForEditSchedule(schedule.assignments);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
+            modal.show();
+        })
+        .catch(e => {
+            showToast('Erro ao carregar escala: ' + e, 'danger');
+        });
+}
+
+function updateSchedule() {
+    const scheduleId = document.getElementById('editScheduleForm').dataset.scheduleId;
+    
+    const microfoneChecked = Array.from(document.querySelectorAll('.edit-microfone-check:checked')).map(c => parseInt(c.value));
+    const somChecked = document.querySelector('.edit-som-check:checked');
+    const indicadorChecked = Array.from(document.querySelectorAll('.edit-indicador-check:checked')).map(c => parseInt(c.value));
+    
+    if (microfoneChecked.length !== 2 || !somChecked || indicadorChecked.length !== 2) {
+        showToast('Selecione: 2 microfones, 1 som e 2 indicadores', 'warning');
+        return;
+    }
+    
+    const assignments = {
+        'MICROFONE': microfoneChecked,
+        'SOM': [parseInt(somChecked.value)],
+        'INDICADOR': indicadorChecked
+    };
+    
+    fetch(`/api/schedules/${scheduleId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({assignments})
+    })
+    .then(r => r.json())
+    .then(() => {
+        bootstrap.Modal.getInstance(document.getElementById('editScheduleModal')).hide();
+        loadSchedules();
+        showToast('Escala atualizada com sucesso', 'success');
+    })
+    .catch(e => showToast('Erro ao atualizar escala: ' + e, 'danger'));
+}
+
+function deleteSchedule(id) {
+    if (!confirm('Deseja realmente deletar esta escala?')) return;
+    
+    fetch(`/api/schedules/${id}`, {method: 'DELETE'})
+        .then(() => {
+            loadSchedules();
+            showToast('Escala deletada com sucesso', 'success');
+        })
+        .catch(e => showToast('Erro ao deletar: ' + e, 'danger'));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadSchedules();
+    loadVolunteersForSchedule();
+    
+    document.getElementById('addScheduleModal').addEventListener('show.bs.modal', loadVolunteersForSchedule);
+});
+</script>
+{% endblock %}

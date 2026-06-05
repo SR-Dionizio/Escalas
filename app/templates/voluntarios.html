@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Voluntários{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">👥 Voluntários</h4>
+                <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addVolunteerModal">
+                    ➕ Novo Voluntário
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Nome</th>
+                                <th>Funções</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="voluntarios-table">
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Volunteer Modal -->
+<div class="modal fade" id="addVolunteerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Novo Voluntário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addVolunteerForm">
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="volunteerName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Funções</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="roleIndicador" value="INDICADOR">
+                            <label class="form-check-label" for="roleIndicador">Indicador</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="roleMicrofone" value="MICROFONE">
+                            <label class="form-check-label" for="roleMicrofone">Microfone</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="roleSom" value="SOM">
+                            <label class="form-check-label" for="roleSom">Som</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="addVolunteer()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Volunteer Modal -->
+<div class="modal fade" id="editVolunteerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Voluntário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editVolunteerForm">
+                    <input type="hidden" id="editVolunteerId">
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="editVolunteerName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Funções</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editRoleIndicador" value="INDICADOR">
+                            <label class="form-check-label" for="editRoleIndicador">Indicador</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editRoleMicrofone" value="MICROFONE">
+                            <label class="form-check-label" for="editRoleMicrofone">Microfone</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editRoleSom" value="SOM">
+                            <label class="form-check-label" for="editRoleSom">Som</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="updateVolunteer()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadVolunteers() {
+    fetch('/api/volunteers')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('voluntarios-table');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhum voluntário cadastrado</td></tr>';
+                return;
+            }
+            
+            data.forEach(v => {
+                const status = v.ativo ? '<span class="badge bg-success">Ativo</span>' : '<span class="badge bg-danger">Inativo</span>';
+                const roles = v.roles.join(', ');
+                const row = `
+                    <tr>
+                        <td>${v.nome}</td>
+                        <td>${roles || 'Nenhuma função'}</td>
+                        <td>${status}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editVolunteer(${v.id})">✏️ Editar</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteVolunteer(${v.id})">🗑️ Deletar</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        });
+}
+
+function addVolunteer() {
+    const nome = document.getElementById('volunteerName').value;
+    const roles = [];
+    
+    if (document.getElementById('roleIndicador').checked) roles.push('INDICADOR');
+    if (document.getElementById('roleMicrofone').checked) roles.push('MICROFONE');
+    if (document.getElementById('roleSom').checked) roles.push('SOM');
+    
+    if (!nome || roles.length === 0) {
+        alert('Preencha o nome e selecione pelo menos uma função');
+        return;
+    }
+    
+    fetch('/api/volunteers', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nome, roles})
+    })
+    .then(r => r.json())
+    .then(() => {
+        document.getElementById('addVolunteerForm').reset();
+        bootstrap.Modal.getInstance(document.getElementById('addVolunteerModal')).hide();
+        loadVolunteers();
+    })
+    .catch(e => alert('Erro ao adicionar voluntário: ' + e));
+}
+
+function editVolunteer(id) {
+    fetch(`/api/volunteers/${id}`)
+        .then(r => r.json())
+        .then(v => {
+            document.getElementById('editVolunteerId').value = v.id;
+            document.getElementById('editVolunteerName').value = v.nome;
+            
+            document.getElementById('editRoleIndicador').checked = v.roles.includes('INDICADOR');
+            document.getElementById('editRoleMicrofone').checked = v.roles.includes('MICROFONE');
+            document.getElementById('editRoleSom').checked = v.roles.includes('SOM');
+            
+            new bootstrap.Modal(document.getElementById('editVolunteerModal')).show();
+        });
+}
+
+function updateVolunteer() {
+    const id = document.getElementById('editVolunteerId').value;
+    const nome = document.getElementById('editVolunteerName').value;
+    const roles = [];
+    
+    if (document.getElementById('editRoleIndicador').checked) roles.push('INDICADOR');
+    if (document.getElementById('editRoleMicrofone').checked) roles.push('MICROFONE');
+    if (document.getElementById('editRoleSom').checked) roles.push('SOM');
+    
+    fetch(`/api/volunteers/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nome, roles, ativo: true})
+    })
+    .then(r => r.json())
+    .then(() => {
+        bootstrap.Modal.getInstance(document.getElementById('editVolunteerModal')).hide();
+        loadVolunteers();
+    })
+    .catch(e => alert('Erro ao atualizar voluntário: ' + e));
+}
+
+function deleteVolunteer(id) {
+    if (!confirm('Deseja realmente deletar este voluntário?')) return;
+    
+    fetch(`/api/volunteers/${id}`, {method: 'DELETE'})
+        .then(() => loadVolunteers())
+        .catch(e => alert('Erro ao deletar: ' + e));
+}
+
+document.addEventListener('DOMContentLoaded', loadVolunteers);
+</script>
+{% endblock %}

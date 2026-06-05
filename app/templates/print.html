@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprimir Escalas do Mês</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @media print {
+            body {
+                background: white;
+            }
+            .no-print {
+                display: none;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+        }
+        .print-container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .print-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #333;
+            padding-bottom: 15px;
+        }
+        .week-section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+            border: 1px solid #ddd;
+            padding: 15px;
+        }
+        .week-header {
+            background: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            border-bottom: 2px solid #333;
+        }
+        .role-section {
+            margin-bottom: 15px;
+        }
+        .role-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+        .role-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .role-list li {
+            padding: 5px 0;
+            font-size: 13px;
+            border-bottom: 1px dotted #eee;
+        }
+        .role-list li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print mb-3 mt-3">
+        <div class="container">
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn btn-secondary" onclick="window.history.back()">← Voltar</button>
+        </div>
+    </div>
+
+    <div class="print-container">
+        <div class="print-title">ESCALAS DO MÊS</div>
+
+        {% if weeks %}
+            {% for week in weeks %}
+                <div class="week-section">
+                    <div class="week-header">
+                        Semana de {{ week.week_start.strftime('%d') }} a {{ week.week_end.strftime('%d') }} de {{ week.week_start.strftime('%B').upper() }}
+                        <br>
+                        <small>({{ week.week_date }})</small>
+                    </div>
+
+                    {% if week.schedule %}
+                        <div class="role-section">
+                            <div class="role-title">🎤 Microfone (2 pessoas):</div>
+                            <ul class="role-list">
+                                {% set microfone = week.schedule.assignments | selectattr('role_name', 'equalto', 'MICROFONE') | list %}
+                                {% if microfone %}
+                                    {% for assignment in microfone %}
+                                        <li>- {{ assignment.volunteer_name }}</li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li><em>Nenhum voluntário definido</em></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        <div class="role-section">
+                            <div class="role-title">🔊 Sistema de Som (1 pessoa):</div>
+                            <ul class="role-list">
+                                {% set som = week.schedule.assignments | selectattr('role_name', 'equalto', 'SOM') | list %}
+                                {% if som %}
+                                    {% for assignment in som %}
+                                        <li>- {{ assignment.volunteer_name }}</li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li><em>Nenhum voluntário definido</em></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        <div class="role-section">
+                            <div class="role-title">👁️ Indicadores (2 pessoas):</div>
+                            <ul class="role-list">
+                                {% set indicador = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR') | list %}
+                                {% if indicador %}
+                                    {% for assignment in indicador %}
+                                        <li>- {{ assignment.volunteer_name }}</li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li><em>Nenhum voluntário definido</em></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    {% else %}
+                        <div style="font-style: italic; color: #666;">
+                            ⚠️ Nenhuma escala definida para esta semana
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-warning">
+                <strong>⚠️ Nenhuma escala definida para este mês</strong>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Auto-print on load (optional - comment if you want manual trigger)
+        // window.print();
+    </script>
+</body>
+</html>

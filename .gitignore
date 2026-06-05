@@ -24,4 +24,15 @@ Thumbs.db
 
 # Ignore environment
 .env.local
-.env.*.local
+.env
+start.bat
+start.sh
+terraform_codigo.zip
+docker
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+terraform.tfvars
