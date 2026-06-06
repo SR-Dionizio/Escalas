@@ -1,4 +1,10 @@
 # ==========================================
+# Descobre o ID da conta AWS
+# ==========================================
+
+data "aws_caller_identity" "current" {}
+
+# ==========================================
 # IAM Role para EventBridge Scheduler
 # ==========================================
 
@@ -32,12 +38,14 @@ resource "aws_iam_role_policy" "scheduler_policy" {
     Statement = [
       {
         Effect = "Allow"
+
         Action = [
-          "ecs:UpdateService"
+          "ec2:StartInstances",
+          "ec2:StopInstances"
         ]
+
         Resource = [
-          aws_ecs_service.main.id,
-          aws_ecs_cluster.main.arn
+          "arn:aws:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:instance/${aws_instance.app.id}"
         ]
       }
     ]
@@ -45,10 +53,10 @@ resource "aws_iam_role_policy" "scheduler_policy" {
 }
 
 # ==========================================
-# Liga o ECS às 09:00 (Horário de Brasília)
+# Liga a EC2 às 09:00
 # ==========================================
 
-resource "aws_scheduler_schedule" "start_ecs" {
+resource "aws_scheduler_schedule" "start_ec2" {
   name = "${var.project_name}-start"
 
   flexible_time_window {
@@ -59,22 +67,22 @@ resource "aws_scheduler_schedule" "start_ecs" {
   schedule_expression_timezone = "America/Sao_Paulo"
 
   target {
-    arn      = "arn:aws:scheduler:::aws-sdk:ecs:updateService"
+    arn      = "arn:aws:scheduler:::aws-sdk:ec2:startInstances"
     role_arn = aws_iam_role.scheduler_role.arn
 
     input = jsonencode({
-      Cluster      = aws_ecs_cluster.main.name
-      Service      = aws_ecs_service.main.name
-      DesiredCount = 1
+      InstanceIds = [
+        aws_instance.app.id
+      ]
     })
   }
 }
 
 # ==========================================
-# Desliga o ECS às 22:00 (Horário de Brasília)
+# Desliga a EC2 às 22:00
 # ==========================================
 
-resource "aws_scheduler_schedule" "stop_ecs" {
+resource "aws_scheduler_schedule" "stop_ec2" {
   name = "${var.project_name}-stop"
 
   flexible_time_window {
@@ -85,13 +93,13 @@ resource "aws_scheduler_schedule" "stop_ecs" {
   schedule_expression_timezone = "America/Sao_Paulo"
 
   target {
-    arn      = "arn:aws:scheduler:::aws-sdk:ecs:updateService"
+    arn      = "arn:aws:scheduler:::aws-sdk:ec2:stopInstances"
     role_arn = aws_iam_role.scheduler_role.arn
 
     input = jsonencode({
-      Cluster      = aws_ecs_cluster.main.name
-      Service      = aws_ecs_service.main.name
-      DesiredCount = 0
+      InstanceIds = [
+        aws_instance.app.id
+      ]
     })
   }
 }

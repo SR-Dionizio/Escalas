@@ -1,4 +1,4 @@
-name: Deploy to ECS
+name: Deploy to EC2 via SSM
 
 on:
   push:
@@ -7,10 +7,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: escalas-app
-  ECS_CLUSTER: escalas-cluster
-  ECS_SERVICE: escalas-app
-  IMAGE_TAG: latest
+  INSTANCE_ID: i-0e52ba2984a45dc96
 
 jobs:
   deploy:
@@ -31,24 +28,38 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build Docker Image
+      - name: Deploy application
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
-            .
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ env.INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy Escalas" \
+            --parameters '{
+              "commands":[
+                "sudo mkdir -p /opt/escalas",
+                "if [ ! -d /opt/escalas/.git ]; then sudo git clone https://github.com/SR-Dionizio/Escalas.git /opt/escalas; fi",
+                "cd /opt/escalas",
+                "sudo git fetch origin",
+                "sudo git reset --hard origin/main",
+                "sudo docker stop escalas || true",
+                "sudo docker rm escalas || true",
+                "sudo docker build -t escalas:latest .",
+                "sudo mkdir -p /opt/escalas/data",
+                "sudo docker run -d --restart unless-stopped --name escalas -p 8000:8000 -v /opt/escalas/data:/app-data escalas:latest"
+              ]
+            }' \
+            --query "Command.CommandId" \
+            --output text)
 
-      - name: Push Docker Image
-        run: |
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          echo "Command ID: $COMMAND_ID"
 
-      - name: Force ECS Deployment
+      - name: Wait for completion
         run: |
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE }} \
-            --force-new-deployment
+          sleep 15
+
+      - name: Show execution result
+        run: |
+          aws ssm list-command-invocations \
+            --details \
+            --command-id $(aws ssm list-commands --max-results 1 --query "Commands[0].CommandId" --output text) \
+            --region ${{ env.AWS_REGION }}
