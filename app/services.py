@@ -55,7 +55,7 @@ class VolunteerService:
     def list_volunteers(ativo_only: bool = False) -> List[Volunteer]:
         """List all volunteers"""
         conn = get_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor() 
         
         if ativo_only:
             cursor.execute('SELECT id FROM volunteer WHERE ativo = 1')
