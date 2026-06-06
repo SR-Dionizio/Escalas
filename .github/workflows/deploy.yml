@@ -42,8 +42,8 @@ jobs:
                 "sudo git clone https://github.com/SR-Dionizio/Escalas.git /opt/escalas",
                 "cd /opt/escalas",
                 "sudo docker build -t escalas:latest .",
-                "sudo mkdir -p /opt/escalas/data",
-                "sudo docker run -d --restart unless-stopped --name escalas -p 8000:8000 -v /opt/escalas/data:/app-data escalas:latest"
+                "sudo mkdir -p /opt/escalas-data",
+                "sudo docker run -d --restart unless-stopped --name escalas -p 8000:8000 -e DATABASE_PATH=/app-data/escalas.db -v /opt/escalas-data:/app-data escalas:latest"
               ]
             }' \
             --query "Command.CommandId" \
@@ -77,3 +77,5 @@ jobs:
           if [ "$STATUS" != "Success" ]; then
             exit 1
           fi
+
+          echo "Deployment completed successfully!"

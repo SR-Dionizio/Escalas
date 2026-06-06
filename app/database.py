@@ -1,10 +1,16 @@
 import sqlite3
 from pathlib import Path
 
-DATABASE_PATH = Path(__file__).parent.parent / "escalas.db"
+import os
+
+DATABASE_PATH = Path(
+    os.getenv(
+        "DATABASE_PATH",
+        str(Path(__file__).parent.parent / "escalas.db")
+    )
+)
 
 def get_connection():
-    """Get database connection"""
     conn = sqlite3.connect(str(DATABASE_PATH))
     conn.row_factory = sqlite3.Row
     return conn
