@@ -36,13 +36,11 @@ jobs:
             --comment "Deploy Escalas" \
             --parameters '{
               "commands":[
-                "sudo mkdir -p /opt/escalas",
-                "if [ ! -d /opt/escalas/.git ]; then sudo git clone https://github.com/SR-Dionizio/Escalas.git /opt/escalas; fi",
-                "cd /opt/escalas",
-                "sudo git fetch origin",
-                "sudo git reset --hard origin/main",
                 "sudo docker stop escalas || true",
                 "sudo docker rm escalas || true",
+                "sudo rm -rf /opt/escalas",
+                "sudo git clone https://github.com/SR-Dionizio/Escalas.git /opt/escalas",
+                "cd /opt/escalas",
                 "sudo docker build -t escalas:latest .",
                 "sudo mkdir -p /opt/escalas/data",
                 "sudo docker run -d --restart unless-stopped --name escalas -p 8000:8000 -v /opt/escalas/data:/app-data escalas:latest"
@@ -52,11 +50,11 @@ jobs:
             --output text \
             --region "${{ env.AWS_REGION }}")
 
-          echo "Command ID: $COMMAND_ID"
           echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_ENV
+          echo "Command ID: $COMMAND_ID"
 
       - name: Wait for completion
-        run: sleep 20
+        run: sleep 30
 
       - name: Show execution result
         run: |
@@ -77,8 +75,5 @@ jobs:
           echo "Deployment status: $STATUS"
 
           if [ "$STATUS" != "Success" ]; then
-            echo "Deployment failed!"
             exit 1
           fi
-
-          echo "Deployment completed successfully!"
