@@ -18,8 +18,8 @@ COPY --from=builder /root/.local /root/.local
 # Copy application code
 COPY app/ ./app/
 COPY requirements.txt .
-COPY start.sh .
-RUN chmod +x start.sh
+COPY docker-entrypoint.sh .
+RUN chmod +x docker-entrypoint.sh
 
 # Set environment variables
 ENV PATH=/root/.local/bin:$PATH \
@@ -34,4 +34,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/').read()" || exit 1
 
 # Run startup script
-CMD ["/app/start.sh"]
+CMD ["/app/docker-entrypoint.sh"]
