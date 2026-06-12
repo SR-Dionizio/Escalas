@@ -10,58 +10,6 @@ env:
   INSTANCE_ID: i-08b116a183890b384
 
 jobs:
-  terraform:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-    
-    permissions:
-      id-token: write
-      contents: read
-    
-    outputs:
-      instance_id: ${{ steps.terraform_output.outputs.instance_id }}
-      elastic_ip: ${{ steps.terraform_output.outputs.elastic_ip }}
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.0
-      
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-      
-      - name: Terraform Init
-        working-directory: ./terraform
-        run: |
-          terraform init -upgrade
-          terraform providers lock -platform=linux_amd64 -platform=darwin_amd64 -platform=windows_amd64
-      
-      - name: Terraform Plan
-        working-directory: ./terraform
-        run: terraform plan -out=tfplan
-      
-      - name: Terraform Apply
-        working-directory: ./terraform
-        run: terraform apply -auto-approve tfplan
-      
-      - name: Get Terraform Outputs
-        id: terraform_output
-        working-directory: ./terraform
-        run: |
-          INSTANCE_ID=$(terraform output -raw ec2_instance_id)
-          ELASTIC_IP=$(terraform output -raw elastic_ip)
-          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
-          echo "elastic_ip=$ELASTIC_IP" >> $GITHUB_OUTPUT
-          echo "Instance ID: $INSTANCE_ID"
-          echo "Elastic IP: $ELASTIC_IP"
 
   deploy:
     name: Deploy Application
