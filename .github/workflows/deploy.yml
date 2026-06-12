@@ -14,7 +14,6 @@ jobs:
   deploy:
     name: Deploy Application
     runs-on: ubuntu-latest
-    needs: terraform
 
     permissions:
       id-token: write
@@ -33,7 +32,7 @@ jobs:
 
       - name: Deploy application
         run: |
-          INSTANCE_ID="${{ needs.terraform.outputs.instance_id }}"
+          INSTANCE_ID="${{ env.INSTANCE_ID }}"
           echo "Deploying to instance: $INSTANCE_ID"
           
           COMMAND_ID=$(aws ssm send-command \
