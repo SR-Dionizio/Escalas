@@ -1,15 +1,19 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi import FastAPI, HTTPException, Request, Form, Depends
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from datetime import datetime, timedelta
 from pathlib import Path
 import json
 
-from app.database import init_db
+from app.database import init_db, get_connection
 from app.models import Volunteer, Schedule
 from app.services import (
     VolunteerService, RoleService, ScheduleService, UnavailableService
+)
+from app.auth import (
+    verify_password, create_access_token, require_auth,
+    is_authenticated, get_current_user
 )
 
 # Initialize database
@@ -27,19 +31,21 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    """Dashboard - Current month schedule (all weeks)"""
+    """Dashboard - Current month schedule (all weeks) - PUBLIC"""
     weeks = ScheduleService.get_current_month_weeks()
+    user = get_current_user(request)
     
     context = {
         "request": request,
-        "weeks": weeks
+        "weeks": weeks,
+        "user": user
     }
     
     return templates.TemplateResponse("dashboard.html", context)
 
 @app.get("/print-month", response_class=HTMLResponse)
 async def print_month(request: Request):
-    """Print current month schedule"""
+    """Print current month schedule - PUBLIC"""
     weeks = ScheduleService.get_current_month_weeks()
     
     if not weeks:
@@ -52,6 +58,128 @@ async def print_month(request: Request):
     
     return templates.TemplateResponse("print.html", context)
 
+# Authentication Routes
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Login page"""
+    # If already logged in, redirect to dashboard
+    if is_authenticated(request):
+        return RedirectResponse(url="/", status_code=302)
+    
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.post("/login")
+async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    """Process login"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT username, password_hash FROM user WHERE username = ?', (username,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user or not verify_password(password, user[1]):
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Usuário ou senha incorretos"
+        })
+    
+    # Create access token
+    access_token = create_access_token(data={"sub": username})
+    
+    # Redirect to dashboard with cookie
+    response = RedirectResponse(url="/", status_code=302)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=60 * 60 * 24,  # 24 hours
+        samesite="lax"
+    )
+    return response
+
+@app.get("/logout")
+async def logout():
+    """Logout user"""
+    response = RedirectResponse(url="/", status_code=302)
+    response.delete_cookie("access_token")
+    return response
+
+@app.get("/alterar-senha", response_class=HTMLResponse)
+async def change_password_page(request: Request):
+    """Change password page - PROTECTED"""
+    user = require_auth(request)
+    return templates.TemplateResponse("alterar_senha.html", {
+        "request": request,
+        "user": user
+    })
+
+@app.post("/alterar-senha")
+async def change_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...)
+):
+    """Process password change - PROTECTED"""
+    user = require_auth(request)
+    
+    # Validate new passwords match
+    if new_password != confirm_password:
+        return templates.TemplateResponse("alterar_senha.html", {
+            "request": request,
+            "user": user,
+            "error": "As senhas não coincidem!"
+        })
+    
+    # Validate password length
+    if len(new_password) < 6:
+        return templates.TemplateResponse("alterar_senha.html", {
+            "request": request,
+            "user": user,
+            "error": "A senha deve ter pelo menos 6 caracteres!"
+        })
+    
+    # Get user from database
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT password_hash FROM user WHERE username = ?', (user,))
+    user_data = cursor.fetchone()
+    
+    if not user_data:
+        conn.close()
+        return templates.TemplateResponse("alterar_senha.html", {
+            "request": request,
+            "user": user,
+            "error": "Usuário não encontrado!"
+        })
+    
+    # Verify current password
+    if not verify_password(current_password, user_data[0]):
+        conn.close()
+        return templates.TemplateResponse("alterar_senha.html", {
+            "request": request,
+            "user": user,
+            "error": "Senha atual incorreta!"
+        })
+    
+    # Update password
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    new_hash = pwd_context.hash(new_password)
+    
+    cursor.execute('UPDATE user SET password_hash = ? WHERE username = ?',
+                   (new_hash, user))
+    conn.commit()
+    conn.close()
+    
+    return templates.TemplateResponse("alterar_senha.html", {
+        "request": request,
+        "user": user,
+        "success": "Senha alterada com sucesso!"
+    })
+
 # API Endpoints - Volunteers
 
 @app.get("/api/volunteers")
@@ -61,8 +189,10 @@ async def list_volunteers(ativo_only: bool = False):
     return [v.to_dict() for v in volunteers]
 
 @app.post("/api/volunteers")
-async def create_volunteer(data: dict):
-    """Create new volunteer"""
+async def create_volunteer(request: Request, data: dict):
+    """Create new volunteer - PROTECTED"""
+    require_auth(request)
+    
     nome = data.get("nome")
     roles = data.get("roles", [])
     
@@ -83,8 +213,10 @@ async def get_volunteer(volunteer_id: int):
     return volunteer.to_dict()
 
 @app.put("/api/volunteers/{volunteer_id}")
-async def update_volunteer(volunteer_id: int, data: dict):
-    """Update volunteer"""
+async def update_volunteer(request: Request, volunteer_id: int, data: dict):
+    """Update volunteer - PROTECTED"""
+    require_auth(request)
+    
     volunteer = VolunteerService.get_volunteer(volunteer_id)
     
     if not volunteer:
@@ -97,11 +229,16 @@ async def update_volunteer(volunteer_id: int, data: dict):
     VolunteerService.update_volunteer(volunteer_id, nome, roles, ativo)
     updated = VolunteerService.get_volunteer(volunteer_id)
     
+    if not updated:
+        raise HTTPException(status_code=500, detail="Erro ao atualizar voluntário")
+    
     return updated.to_dict()
 
 @app.delete("/api/volunteers/{volunteer_id}")
-async def delete_volunteer(volunteer_id: int):
-    """Delete volunteer (soft delete - inactivate)"""
+async def delete_volunteer(request: Request, volunteer_id: int):
+    """Delete volunteer (soft delete - inactivate) - PROTECTED"""
+    require_auth(request)
+    
     volunteer = VolunteerService.get_volunteer(volunteer_id)
     
     if not volunteer:
@@ -127,8 +264,10 @@ async def list_schedules():
     return [s.to_dict() for s in schedules]
 
 @app.post("/api/schedules")
-async def create_schedule(data: dict):
-    """Create new schedule"""
+async def create_schedule(request: Request, data: dict):
+    """Create new schedule - PROTECTED"""
+    require_auth(request)
+    
     week_date = data.get("week_date")
     assignments = data.get("assignments", {})
     
@@ -154,8 +293,10 @@ async def get_schedule(schedule_id: int):
     return schedule.to_dict()
 
 @app.put("/api/schedules/{schedule_id}")
-async def update_schedule(schedule_id: int, data: dict):
-    """Update schedule"""
+async def update_schedule(request: Request, schedule_id: int, data: dict):
+    """Update schedule - PROTECTED"""
+    require_auth(request)
+    
     schedule = ScheduleService.get_schedule(schedule_id)
     
     if not schedule:
@@ -165,11 +306,16 @@ async def update_schedule(schedule_id: int, data: dict):
     ScheduleService.update_schedule(schedule_id, assignments)
     
     updated = ScheduleService.get_schedule(schedule_id)
+    if not updated:
+        raise HTTPException(status_code=500, detail="Erro ao atualizar escala")
+    
     return updated.to_dict()
 
 @app.delete("/api/schedules/{schedule_id}")
-async def delete_schedule(schedule_id: int):
-    """Delete schedule"""
+async def delete_schedule(request: Request, schedule_id: int):
+    """Delete schedule - PROTECTED"""
+    require_auth(request)
+    
     schedule = ScheduleService.get_schedule(schedule_id)
     
     if not schedule:
@@ -196,19 +342,24 @@ async def add_unavailable(data: dict):
 
 @app.get("/voluntarios", response_class=HTMLResponse)
 async def volunteers_page(request: Request):
-    """Volunteers management page"""
+    """Volunteers management page - PROTECTED"""
+    user = require_auth(request)
+    
     volunteers = VolunteerService.list_volunteers()
     roles = RoleService.list_roles()
     
     return templates.TemplateResponse("voluntarios.html", {
         "request": request,
         "volunteers": [v.to_dict() for v in volunteers],
-        "roles": [r.to_dict() for r in roles]
+        "roles": [r.to_dict() for r in roles],
+        "user": user
     })
 
 @app.get("/escalas", response_class=HTMLResponse)
 async def schedules_page(request: Request):
-    """Schedules management page"""
+    """Schedules management page - PROTECTED"""
+    user = require_auth(request)
+    
     schedules = ScheduleService.list_schedules()
     volunteers = VolunteerService.list_volunteers(ativo_only=True)
     roles = RoleService.list_roles()
@@ -217,7 +368,8 @@ async def schedules_page(request: Request):
         "request": request,
         "schedules": [s.to_dict() for s in schedules],
         "volunteers": [v.to_dict() for v in volunteers],
-        "roles": [r.to_dict() for r in roles]
+        "roles": [r.to_dict() for r in roles],
+        "user": user
     })
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ Um sistema web para gerenciar escalas semanais de voluntários com funções esp
 - ✅ **Dashboard**: Veja a escala da semana atual em tempo real
 - ✅ **Impressão**: Imprima a escala em formato A4
 - ✅ **Indicadores Separados**: Diferencie entre Indicador de Entrada e Indicador do Auditório
+- ✅ **Sistema de Autenticação**: Login para proteger edição de escalas e voluntários
 
 ### Funcionalidades Futuras (Versão 2)
 - 🚀 Geração automática de escalas
@@ -62,6 +63,21 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 6. **Acessar a aplicação**
 Abra o navegador em: `http://localhost:8000`
+
+## Autenticação
+
+O sistema possui autenticação para proteger as páginas de gerenciamento:
+
+- **Dashboard**: Público (qualquer um pode visualizar)
+- **Voluntários e Escalas**: Requer login
+
+### Credenciais Padrão
+- **Usuário**: `admin`
+- **Senha**: `admin123`
+
+⚠️ **Altere a senha padrão em produção!**
+
+Veja mais detalhes em [AUTENTICACAO.md](AUTENTICACAO.md)
 
 ## Estrutura do Projeto
 
@@ -125,20 +141,21 @@ Escalas/
 
 ## Páginas Web
 
-### Dashboard (`/`)
+### Dashboard (`/`) - PÚBLICO
 Página inicial mostrando a escala da semana atual com:
 - Lista de voluntários por função
 - Botão para imprimir escala
 - Estatísticas gerais
+- Botão de login (se não autenticado)
 
-### Voluntários (`/voluntarios`)
+### Voluntários (`/voluntarios`) - REQUER LOGIN
 Gerenciamento completo de voluntários:
 - Listar todos os voluntários
 - Cadastrar novo voluntário
 - Editar voluntário
 - Inativar voluntário
 
-### Escalas (`/escalas`)
+### Escalas (`/escalas`) - REQUER LOGIN
 Gerenciamento de escalas:
 - Visualizar todas as escalas
 - Criar nova escala
@@ -146,12 +163,19 @@ Gerenciamento de escalas:
 - Deletar escala
 - Histórico de escalas
 
-## Impressão (`/print-week`)
+## Impressão (`/print-month`) - PÚBLICO
 
-Página formatada para impressão em A4 da escala da semana atual com:
-- Data da semana
+Página formatada para impressão em A4 das escalas do mês com:
+- Todas as semanas do mês
 - Nomes dos voluntários por função
 - Formatação otimizada para papel
+
+## Login (`/login`)
+
+Página de autenticação para acessar áreas protegidas:
+- Login com usuário e senha
+- Sessão válida por 24 horas
+- Logout disponível na navbar
 
 ## Como Usar
 

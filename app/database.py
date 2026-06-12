@@ -83,12 +83,32 @@ def init_db():
         )
     ''')
     
+    # Create users table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     # Insert default roles if not exist
     cursor.execute('SELECT COUNT(*) FROM role')
     if cursor.fetchone()[0] == 0:
         roles = ['MICROFONE', 'SOM', 'INDICADOR_ENTRADA', 'INDICADOR_AUDITORIO']
         for role in roles:
             cursor.execute('INSERT INTO role (nome) VALUES (?)', (role,))
+    
+    # Insert default admin user if not exist (username: admin, password: admin123)
+    cursor.execute('SELECT COUNT(*) FROM user')
+    if cursor.fetchone()[0] == 0:
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        hashed_password = pwd_context.hash("admin123")
+        cursor.execute('INSERT INTO user (username, password_hash) VALUES (?, ?)',
+                      ('admin', hashed_password))
+        print("Usuario admin criado com senha: admin123")
     
     conn.commit()
     conn.close()

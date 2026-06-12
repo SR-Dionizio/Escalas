@@ -14,7 +14,7 @@
                     {% for week in weeks %}
                         <div class="card mb-3 border-info">
                             <div class="card-header bg-light">
-                                <strong>Semana de {{ week.week_start.strftime('%d') }} a {{ week.week_end.strftime('%d') }} de {{ week.week_start.strftime('%B') }}</strong>
+                                <strong>Semana de {{ week.week_start.strftime('%d') }} a {{ week.week_end.strftime('%d') }} de {{ week.month_name }}</strong>
                                 <small class="text-muted">({{ week.week_date }})</small>
                             </div>
                             <div class="card-body">

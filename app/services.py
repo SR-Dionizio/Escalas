@@ -2,6 +2,16 @@ from app.database import get_connection
 from app.models import Volunteer, Role, Schedule, ScheduleAssignment
 from datetime import datetime, timedelta
 from typing import List, Optional
+import locale
+
+# Set locale to Portuguese Brazil
+try:
+    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
+except:
+    try:
+        locale.setlocale(locale.LC_TIME, 'Portuguese_Brazil.1252')
+    except:
+        pass  # Keep default if Portuguese locale not available
 
 class VolunteerService:
     @staticmethod
@@ -195,6 +205,13 @@ class ScheduleService:
     @staticmethod
     def get_current_month_weeks():
         """Get all weeks of current month with their schedules"""
+        # Portuguese month names mapping
+        month_names_pt = {
+            1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+            5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+            9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+        }
+        
         today = datetime.now()
         year = today.year
         month = today.month
@@ -217,10 +234,14 @@ class ScheduleService:
             week_end = current + timedelta(days=6)
             schedule = ScheduleService.get_schedule_by_date(week_date)
             
+            # Get month name in Portuguese
+            month_name = month_names_pt.get(current.month, current.strftime('%B'))
+            
             weeks.append({
                 'week_date': week_date,
                 'week_start': current,
                 'week_end': week_end,
+                'month_name': month_name,
                 'schedule': schedule
             })
             

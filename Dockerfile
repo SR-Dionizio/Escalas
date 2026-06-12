@@ -32,13 +32,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/').read()" || exit 1
 
-# Create startup script
-RUN echo '#!/bin/sh\n\
-echo "Executando migracao de indicadores..."\n\
-python migrate_indicadores.py\n\
-echo "Iniciando aplicacao..."\n\
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000' > /app/start.sh && \
-    chmod +x /app/start.sh
-
 # Run startup script
 CMD ["/app/start.sh"]
