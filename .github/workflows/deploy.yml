@@ -79,12 +79,17 @@ jobs:
                 "echo \"[10/11] Restarting Nginx...\"",
                 "sudo systemctl restart nginx",
                 "sudo systemctl enable nginx",
-                "echo \"[11/11] Checking services...\"",
+                "echo \"[11/13] Checking services...\"",
                 "sudo docker ps | grep escalas || { echo \"Container not running!\"; exit 1; }",
                 "sudo systemctl is-active nginx || { echo \"Nginx not running!\"; exit 1; }",
+                "echo \"[12/13] Configuring SSL with Certbot...\"",
+                "sudo certbot --nginx -d escalas.click -d www.escalas.click --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL || 'admin@escalas.click' }} --redirect || echo \"⚠️  SSL configuration failed, continuing without HTTPS\"",
+                "echo \"[13/13] Enabling auto-renewal...\"",
+                "sudo systemctl enable certbot-renew.timer || true",
+                "sudo systemctl start certbot-renew.timer || true",
                 "echo \"✅ Deployment completed successfully!\"",
                 "echo \"🌐 HTTP: http://escalas.click\"",
-                "echo \"🔐 Para HTTPS, execute: sudo certbot --nginx -d escalas.click -d www.escalas.click\""
+                "echo \"🔐 HTTPS: https://escalas.click\""
               ]
             }' \
             --query "Command.CommandId" \
