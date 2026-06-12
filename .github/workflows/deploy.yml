@@ -57,7 +57,7 @@ jobs:
                 "echo \"[6/11] Starting container...\"",
                 "sudo docker run -d --restart unless-stopped --name escalas -p 8000:8000 -e DATABASE_PATH=/app-data/escalas.db -v /opt/escalas-data:/app-data escalas:latest || { echo \"Container start failed!\"; exit 1; }",
                 "echo \"[7/11] Installing Nginx and Certbot...\"",
-                "sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx",
+                "sudo dnf install -y nginx certbot python3-certbot-nginx",
                 "echo \"[8/11] Configuring Nginx...\"",
                 "sudo tee /etc/nginx/sites-available/escalas > /dev/null <<'NGINX_EOF'",
                 "server {",
