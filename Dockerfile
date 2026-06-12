@@ -18,6 +18,8 @@ COPY --from=builder /root/.local /root/.local
 # Copy application code
 COPY app/ ./app/
 COPY requirements.txt .
+COPY start.sh .
+RUN chmod +x start.sh
 
 # Set environment variables
 ENV PATH=/root/.local/bin:$PATH \
