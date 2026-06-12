@@ -96,3 +96,16 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# Route 53 Configuration
+variable "domain_name" {
+  description = "Domain name registered in Route 53"
+  type        = string
+  default     = "escalas.click"
+}
+
+variable "hosted_zone_id" {
+  description = "Route 53 Hosted Zone ID"
+  type        = string
+  default     = "Z01143431R9LPEM0VHXVC"
+}
