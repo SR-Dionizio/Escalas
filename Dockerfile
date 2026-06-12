@@ -18,7 +18,6 @@ COPY --from=builder /root/.local /root/.local
 # Copy application code
 COPY app/ ./app/
 COPY requirements.txt .
-COPY migrate_indicadores.py .
 
 # Set environment variables
 ENV PATH=/root/.local/bin:$PATH \
