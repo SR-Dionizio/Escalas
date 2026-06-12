@@ -20,13 +20,14 @@
                                 <th>Semana</th>
                                 <th>Microfones</th>
                                 <th>Som</th>
-                                <th>Indicadores</th>
+                                <th>Indicador Entrada</th>
+                                <th>Indicador Auditório</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="schedules-table">
                             <tr>
-                                <td colspan="5" class="text-center text-muted">Carregando...</td>
+                                <td colspan="6" class="text-center text-muted">Carregando...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -57,8 +58,11 @@
                     <h6 class="mt-4 mb-3">Sistema de Som (1 pessoa)</h6>
                     <div id="somOptions" class="mb-3"></div>
                     
-                    <h6 class="mt-4 mb-3">Indicadores (2 pessoas)</h6>
-                    <div id="indicadorOptions" class="mb-3"></div>
+                    <h6 class="mt-4 mb-3">🚪 Indicador de Entrada (1 pessoa)</h6>
+                    <div id="indicadorEntradaOptions" class="mb-3"></div>
+                    
+                    <h6 class="mt-4 mb-3">🏛️ Indicador do Auditório (1 pessoa)</h6>
+                    <div id="indicadorAuditorioOptions" class="mb-3"></div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -90,8 +94,11 @@
                     <h6 class="mt-4 mb-3">Sistema de Som (1 pessoa)</h6>
                     <div id="editSomOptions" class="mb-3"></div>
                     
-                    <h6 class="mt-4 mb-3">Indicadores (2 pessoas)</h6>
-                    <div id="editIndicadorOptions" class="mb-3"></div>
+                    <h6 class="mt-4 mb-3">🚪 Indicador de Entrada (1 pessoa)</h6>
+                    <div id="editIndicadorEntradaOptions" class="mb-3"></div>
+                    
+                    <h6 class="mt-4 mb-3">🏛️ Indicador do Auditório (1 pessoa)</h6>
+                    <div id="editIndicadorAuditorioOptions" class="mb-3"></div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -111,21 +118,23 @@ function loadSchedules() {
             tbody.innerHTML = '';
             
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Nenhuma escala cadastrada</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhuma escala cadastrada</td></tr>';
                 return;
             }
             
             data.forEach(s => {
                 const microfones = s.assignments.filter(a => a.role_name === 'MICROFONE').map(a => a.volunteer_name).join(', ');
                 const som = s.assignments.filter(a => a.role_name === 'SOM').map(a => a.volunteer_name).join(', ');
-                const indicadores = s.assignments.filter(a => a.role_name === 'INDICADOR').map(a => a.volunteer_name).join(', ');
+                const entrada = s.assignments.filter(a => a.role_name === 'INDICADOR_ENTRADA').map(a => a.volunteer_name).join(', ');
+                const auditorio = s.assignments.filter(a => a.role_name === 'INDICADOR_AUDITORIO').map(a => a.volunteer_name).join(', ');
                 
                 const row = `
                     <tr>
                         <td>${s.week_date}</td>
                         <td>${microfones || '-'}</td>
                         <td>${som || '-'}</td>
-                        <td>${indicadores || '-'}</td>
+                        <td>${entrada || '-'}</td>
+                        <td>${auditorio || '-'}</td>
                         <td>
                             <button class="btn btn-sm btn-warning" onclick="editSchedule(${s.id})">✏️ Editar</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteSchedule(${s.id})">🗑️ Deletar</button>
@@ -143,11 +152,13 @@ function loadVolunteersForSchedule() {
         .then(volunteers => {
             const microfoneDiv = document.getElementById('microfoneOptions');
             const somDiv = document.getElementById('somOptions');
-            const indicadorDiv = document.getElementById('indicadorOptions');
+            const entradaDiv = document.getElementById('indicadorEntradaOptions');
+            const auditorioDiv = document.getElementById('indicadorAuditorioOptions');
             
             microfoneDiv.innerHTML = '';
             somDiv.innerHTML = '';
-            indicadorDiv.innerHTML = '';
+            entradaDiv.innerHTML = '';
+            auditorioDiv.innerHTML = '';
             
             volunteers.forEach(v => {
                 if (v.roles.includes('MICROFONE')) {
@@ -170,14 +181,24 @@ function loadVolunteersForSchedule() {
                     somDiv.appendChild(label);
                 }
                 
-                if (v.roles.includes('INDICADOR')) {
+                if (v.roles.includes('INDICADOR_ENTRADA')) {
                     const label = document.createElement('div');
                     label.className = 'form-check';
                     label.innerHTML = `
-                        <input class="form-check-input indicador-check" type="checkbox" value="${v.id}" id="ind${v.id}">
-                        <label class="form-check-label" for="ind${v.id}">${v.nome}</label>
+                        <input class="form-check-input entrada-check" type="radio" name="entrada" value="${v.id}" id="entrada${v.id}">
+                        <label class="form-check-label" for="entrada${v.id}">${v.nome}</label>
                     `;
-                    indicadorDiv.appendChild(label);
+                    entradaDiv.appendChild(label);
+                }
+                
+                if (v.roles.includes('INDICADOR_AUDITORIO')) {
+                    const label = document.createElement('div');
+                    label.className = 'form-check';
+                    label.innerHTML = `
+                        <input class="form-check-input auditorio-check" type="radio" name="auditorio" value="${v.id}" id="auditorio${v.id}">
+                        <label class="form-check-label" for="auditorio${v.id}">${v.nome}</label>
+                    `;
+                    auditorioDiv.appendChild(label);
                 }
             });
         });
@@ -189,16 +210,19 @@ function loadVolunteersForEditSchedule(currentAssignments) {
         .then(volunteers => {
             const microfoneDiv = document.getElementById('editMicrofoneOptions');
             const somDiv = document.getElementById('editSomOptions');
-            const indicadorDiv = document.getElementById('editIndicadorOptions');
+            const entradaDiv = document.getElementById('editIndicadorEntradaOptions');
+            const auditorioDiv = document.getElementById('editIndicadorAuditorioOptions');
             
             microfoneDiv.innerHTML = '';
             somDiv.innerHTML = '';
-            indicadorDiv.innerHTML = '';
+            entradaDiv.innerHTML = '';
+            auditorioDiv.innerHTML = '';
             
             // Get current assignments by role
             const currentMicrofone = currentAssignments.filter(a => a.role_name === 'MICROFONE').map(a => a.volunteer_id);
             const currentSom = currentAssignments.filter(a => a.role_name === 'SOM').map(a => a.volunteer_id)[0];
-            const currentIndicador = currentAssignments.filter(a => a.role_name === 'INDICADOR').map(a => a.volunteer_id);
+            const currentEntrada = currentAssignments.filter(a => a.role_name === 'INDICADOR_ENTRADA').map(a => a.volunteer_id)[0];
+            const currentAuditorio = currentAssignments.filter(a => a.role_name === 'INDICADOR_AUDITORIO').map(a => a.volunteer_id)[0];
             
             volunteers.forEach(v => {
                 if (v.roles.includes('MICROFONE')) {
@@ -223,15 +247,26 @@ function loadVolunteersForEditSchedule(currentAssignments) {
                     somDiv.appendChild(label);
                 }
                 
-                if (v.roles.includes('INDICADOR')) {
+                if (v.roles.includes('INDICADOR_ENTRADA')) {
                     const label = document.createElement('div');
                     label.className = 'form-check';
-                    const isChecked = currentIndicador.includes(v.id) ? 'checked' : '';
+                    const isChecked = currentEntrada === v.id ? 'checked' : '';
                     label.innerHTML = `
-                        <input class="form-check-input edit-indicador-check" type="checkbox" value="${v.id}" id="editInd${v.id}" ${isChecked}>
-                        <label class="form-check-label" for="editInd${v.id}">${v.nome}</label>
+                        <input class="form-check-input edit-entrada-check" type="radio" name="editEntrada" value="${v.id}" id="editEntrada${v.id}" ${isChecked}>
+                        <label class="form-check-label" for="editEntrada${v.id}">${v.nome}</label>
                     `;
-                    indicadorDiv.appendChild(label);
+                    entradaDiv.appendChild(label);
+                }
+                
+                if (v.roles.includes('INDICADOR_AUDITORIO')) {
+                    const label = document.createElement('div');
+                    label.className = 'form-check';
+                    const isChecked = currentAuditorio === v.id ? 'checked' : '';
+                    label.innerHTML = `
+                        <input class="form-check-input edit-auditorio-check" type="radio" name="editAuditorio" value="${v.id}" id="editAuditorio${v.id}" ${isChecked}>
+                        <label class="form-check-label" for="editAuditorio${v.id}">${v.nome}</label>
+                    `;
+                    auditorioDiv.appendChild(label);
                 }
             });
         });
@@ -251,17 +286,19 @@ function addSchedule() {
     
     const microfoneChecked = Array.from(document.querySelectorAll('.microfone-check:checked')).map(c => parseInt(c.value));
     const somChecked = document.querySelector('.som-check:checked');
-    const indicadorChecked = Array.from(document.querySelectorAll('.indicador-check:checked')).map(c => parseInt(c.value));
+    const entradaChecked = document.querySelector('.entrada-check:checked');
+    const auditorioChecked = document.querySelector('.auditorio-check:checked');
     
-    if (microfoneChecked.length !== 2 || !somChecked || indicadorChecked.length !== 2) {
-        alert('Selecione: 2 microfones, 1 som e 2 indicadores');
+    if (microfoneChecked.length !== 2 || !somChecked || !entradaChecked || !auditorioChecked) {
+        alert('Selecione: 2 microfones, 1 som, 1 indicador de entrada e 1 indicador do auditório');
         return;
     }
     
     const assignments = {
         'MICROFONE': microfoneChecked,
         'SOM': [parseInt(somChecked.value)],
-        'INDICADOR': indicadorChecked
+        'INDICADOR_ENTRADA': [parseInt(entradaChecked.value)],
+        'INDICADOR_AUDITORIO': [parseInt(auditorioChecked.value)]
     };
     
     fetch('/api/schedules', {
@@ -307,17 +344,19 @@ function updateSchedule() {
     
     const microfoneChecked = Array.from(document.querySelectorAll('.edit-microfone-check:checked')).map(c => parseInt(c.value));
     const somChecked = document.querySelector('.edit-som-check:checked');
-    const indicadorChecked = Array.from(document.querySelectorAll('.edit-indicador-check:checked')).map(c => parseInt(c.value));
+    const entradaChecked = document.querySelector('.edit-entrada-check:checked');
+    const auditorioChecked = document.querySelector('.edit-auditorio-check:checked');
     
-    if (microfoneChecked.length !== 2 || !somChecked || indicadorChecked.length !== 2) {
-        showToast('Selecione: 2 microfones, 1 som e 2 indicadores', 'warning');
+    if (microfoneChecked.length !== 2 || !somChecked || !entradaChecked || !auditorioChecked) {
+        showToast('Selecione: 2 microfones, 1 som, 1 indicador de entrada e 1 indicador do auditório', 'warning');
         return;
     }
     
     const assignments = {
         'MICROFONE': microfoneChecked,
         'SOM': [parseInt(somChecked.value)],
-        'INDICADOR': indicadorChecked
+        'INDICADOR_ENTRADA': [parseInt(entradaChecked.value)],
+        'INDICADOR_AUDITORIO': [parseInt(auditorioChecked.value)]
     };
     
     fetch(`/api/schedules/${scheduleId}`, {

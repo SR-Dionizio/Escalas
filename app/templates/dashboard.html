@@ -61,21 +61,44 @@
                                         </div>
                                         
                                         <div class="col-md-4">
-                                            <div class="card mb-3 border-warning">
-                                                <div class="card-header bg-warning text-dark">
-                                                    👁️ Indicadores (2 pessoas)
+                                            <div class="row">
+                                                <div class="col-12 mb-3">
+                                                    <div class="card border-warning">
+                                                        <div class="card-header bg-warning text-dark">
+                                                            🚪 Indicador de Entrada
+                                                        </div>
+                                                        <div class="card-body">
+                                                            {% set entrada = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR_ENTRADA') | list %}
+                                                            {% if entrada %}
+                                                                <ul class="list-group">
+                                                                    {% for assignment in entrada %}
+                                                                        <li class="list-group-item">{{ assignment.volunteer_name }}</li>
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            {% else %}
+                                                                <p class="text-muted mb-0">Nenhum voluntário definido</p>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="card-body">
-                                                    {% set indicador = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR') | list %}
-                                                    {% if indicador %}
-                                                        <ul class="list-group">
-                                                            {% for assignment in indicador %}
-                                                                <li class="list-group-item">{{ assignment.volunteer_name }}</li>
-                                                            {% endfor %}
-                                                        </ul>
-                                                    {% else %}
-                                                        <p class="text-muted">Nenhum voluntário definido</p>
-                                                    {% endif %}
+                                                <div class="col-12">
+                                                    <div class="card border-info">
+                                                        <div class="card-header bg-info text-white">
+                                                            🏛️ Indicador do Auditório
+                                                        </div>
+                                                        <div class="card-body">
+                                                            {% set auditorio = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR_AUDITORIO') | list %}
+                                                            {% if auditorio %}
+                                                                <ul class="list-group">
+                                                                    {% for assignment in auditorio %}
+                                                                        <li class="list-group-item">{{ assignment.volunteer_name }}</li>
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            {% else %}
+                                                                <p class="text-muted mb-0">Nenhum voluntário definido</p>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

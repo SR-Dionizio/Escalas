@@ -86,7 +86,7 @@ def init_db():
     # Insert default roles if not exist
     cursor.execute('SELECT COUNT(*) FROM role')
     if cursor.fetchone()[0] == 0:
-        roles = ['MICROFONE', 'SOM', 'INDICADOR']
+        roles = ['MICROFONE', 'SOM', 'INDICADOR_ENTRADA', 'INDICADOR_AUDITORIO']
         for role in roles:
             cursor.execute('INSERT INTO role (nome) VALUES (?)', (role,))
     

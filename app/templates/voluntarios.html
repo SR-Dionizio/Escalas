@@ -51,17 +51,23 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Funções</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="roleIndicador" value="INDICADOR">
-                            <label class="form-check-label" for="roleIndicador">Indicador</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="roleMicrofone" value="MICROFONE">
-                            <label class="form-check-label" for="roleMicrofone">Microfone</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="roleSom" value="SOM">
-                            <label class="form-check-label" for="roleSom">Som</label>
+                        <div class="ms-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="roleMicrofone" value="MICROFONE">
+                                <label class="form-check-label" for="roleMicrofone">🎤 Microfone</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="roleSom" value="SOM">
+                                <label class="form-check-label" for="roleSom">🔊 Som</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="roleIndicadorEntrada" value="INDICADOR_ENTRADA">
+                                <label class="form-check-label" for="roleIndicadorEntrada">🚪 Indicador de Entrada</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="roleIndicadorAuditorio" value="INDICADOR_AUDITORIO">
+                                <label class="form-check-label" for="roleIndicadorAuditorio">🏛️ Indicador do Auditório</label>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -91,17 +97,23 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Funções</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editRoleIndicador" value="INDICADOR">
-                            <label class="form-check-label" for="editRoleIndicador">Indicador</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editRoleMicrofone" value="MICROFONE">
-                            <label class="form-check-label" for="editRoleMicrofone">Microfone</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editRoleSom" value="SOM">
-                            <label class="form-check-label" for="editRoleSom">Som</label>
+                        <div class="ms-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editRoleMicrofone" value="MICROFONE">
+                                <label class="form-check-label" for="editRoleMicrofone">🎤 Microfone</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editRoleSom" value="SOM">
+                                <label class="form-check-label" for="editRoleSom">🔊 Som</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editRoleIndicadorEntrada" value="INDICADOR_ENTRADA">
+                                <label class="form-check-label" for="editRoleIndicadorEntrada">🚪 Indicador de Entrada</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editRoleIndicadorAuditorio" value="INDICADOR_AUDITORIO">
+                                <label class="form-check-label" for="editRoleIndicadorAuditorio">🏛️ Indicador do Auditório</label>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -150,9 +162,10 @@ function addVolunteer() {
     const nome = document.getElementById('volunteerName').value;
     const roles = [];
     
-    if (document.getElementById('roleIndicador').checked) roles.push('INDICADOR');
     if (document.getElementById('roleMicrofone').checked) roles.push('MICROFONE');
     if (document.getElementById('roleSom').checked) roles.push('SOM');
+    if (document.getElementById('roleIndicadorEntrada').checked) roles.push('INDICADOR_ENTRADA');
+    if (document.getElementById('roleIndicadorAuditorio').checked) roles.push('INDICADOR_AUDITORIO');
     
     if (!nome || roles.length === 0) {
         alert('Preencha o nome e selecione pelo menos uma função');
@@ -180,9 +193,10 @@ function editVolunteer(id) {
             document.getElementById('editVolunteerId').value = v.id;
             document.getElementById('editVolunteerName').value = v.nome;
             
-            document.getElementById('editRoleIndicador').checked = v.roles.includes('INDICADOR');
             document.getElementById('editRoleMicrofone').checked = v.roles.includes('MICROFONE');
             document.getElementById('editRoleSom').checked = v.roles.includes('SOM');
+            document.getElementById('editRoleIndicadorEntrada').checked = v.roles.includes('INDICADOR_ENTRADA');
+            document.getElementById('editRoleIndicadorAuditorio').checked = v.roles.includes('INDICADOR_AUDITORIO');
             
             new bootstrap.Modal(document.getElementById('editVolunteerModal')).show();
         });
@@ -193,9 +207,10 @@ function updateVolunteer() {
     const nome = document.getElementById('editVolunteerName').value;
     const roles = [];
     
-    if (document.getElementById('editRoleIndicador').checked) roles.push('INDICADOR');
     if (document.getElementById('editRoleMicrofone').checked) roles.push('MICROFONE');
     if (document.getElementById('editRoleSom').checked) roles.push('SOM');
+    if (document.getElementById('editRoleIndicadorEntrada').checked) roles.push('INDICADOR_ENTRADA');
+    if (document.getElementById('editRoleIndicadorAuditorio').checked) roles.push('INDICADOR_AUDITORIO');
     
     fetch(`/api/volunteers/${id}`, {
         method: 'PUT',

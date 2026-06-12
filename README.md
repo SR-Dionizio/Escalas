@@ -9,6 +9,7 @@ Um sistema web para gerenciar escalas semanais de voluntários com funções esp
 - ✅ **Gerenciamento de Escalas**: Crie e visualize escalas semanais
 - ✅ **Dashboard**: Veja a escala da semana atual em tempo real
 - ✅ **Impressão**: Imprima a escala em formato A4
+- ✅ **Indicadores Separados**: Diferencie entre Indicador de Entrada e Indicador do Auditório
 
 ### Funcionalidades Futuras (Versão 2)
 - 🚀 Geração automática de escalas
@@ -94,7 +95,7 @@ Escalas/
 | Tabela | Descrição |
 |--------|-----------|
 | `volunteer` | Registro de voluntários |
-| `role` | Tipos de funções (MICROFONE, SOM, INDICADOR) |
+| `role` | Tipos de funções (MICROFONE, SOM, INDICADOR_ENTRADA, INDICADOR_AUDITORIO) |
 | `volunteer_role` | Relacionamento voluntário-função |
 | `schedule` | Escalas semanais |
 | `schedule_assignment` | Atribuições de voluntários em escalas |
@@ -169,8 +170,9 @@ Página formatada para impressão em A4 da escala da semana atual com:
 3. Selecione a data da semana
 4. Escolha 2 voluntários para Microfone
 5. Escolha 1 voluntário para Som
-6. Escolha 2 voluntários para Indicadores
-7. Clique em **Criar Escala**
+6. Escolha 1 voluntário para Indicador de Entrada 🚪
+7. Escolha 1 voluntário para Indicador do Auditório 🏛️
+8. Clique em **Criar Escala**
 
 ### Visualizando a Escala Atual
 
@@ -197,6 +199,16 @@ sudo apt-get install python3-venv python3-pip
 # Seguir passos normais de instalação
 # Para iniciar automaticamente ao boot, usar systemd service
 ```
+
+## Migração de Banco de Dados
+
+Se você já tem um banco de dados com a função antiga "INDICADOR", execute o script de migração:
+
+```bash
+python migrate_indicadores.py
+```
+
+Veja detalhes completos em [MIGRACAO_INDICADORES.md](MIGRACAO_INDICADORES.md)
 
 ## Roadmap - Versão 2
 

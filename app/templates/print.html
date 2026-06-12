@@ -118,11 +118,25 @@
                         </div>
 
                         <div class="role-section">
-                            <div class="role-title">👁️ Indicadores (2 pessoas):</div>
+                            <div class="role-title">🚪 Indicador de Entrada:</div>
                             <ul class="role-list">
-                                {% set indicador = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR') | list %}
-                                {% if indicador %}
-                                    {% for assignment in indicador %}
+                                {% set entrada = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR_ENTRADA') | list %}
+                                {% if entrada %}
+                                    {% for assignment in entrada %}
+                                        <li>- {{ assignment.volunteer_name }}</li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li><em>Nenhum voluntário definido</em></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        <div class="role-section">
+                            <div class="role-title">🏛️ Indicador do Auditório:</div>
+                            <ul class="role-list">
+                                {% set auditorio = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR_AUDITORIO') | list %}
+                                {% if auditorio %}
+                                    {% for assignment in auditorio %}
                                         <li>- {{ assignment.volunteer_name }}</li>
                                     {% endfor %}
                                 {% else %}
