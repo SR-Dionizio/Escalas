@@ -40,7 +40,9 @@ jobs:
       
       - name: Terraform Init
         working-directory: ./terraform
-        run: terraform init
+        run: |
+          terraform init -upgrade
+          terraform providers lock -platform=linux_amd64 -platform=darwin_amd64 -platform=windows_amd64
       
       - name: Terraform Plan
         working-directory: ./terraform
