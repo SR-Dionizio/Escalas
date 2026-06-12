@@ -35,4 +35,5 @@ docker
 *.tfstate
 *.tfstate.*
 crash.log
+.terraform.lock.hcl
 terraform.tfvars
