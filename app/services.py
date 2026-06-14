@@ -250,6 +250,51 @@ class ScheduleService:
         return weeks
     
     @staticmethod
+    def get_current_and_next_weeks(weeks_ahead: int = 3):
+        """Get current week and next N weeks with their schedules
+        
+        Args:
+            weeks_ahead: Number of weeks to show ahead (default: 3)
+        
+        Returns:
+            List of weeks with schedules (current week + weeks_ahead)
+        """
+        # Portuguese month names mapping
+        month_names_pt = {
+            1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+            5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+            9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+        }
+        
+        today = datetime.now()
+        
+        # Find the Monday of current week (Monday = 0)
+        days_since_monday = today.weekday()
+        current_week_start = today - timedelta(days=days_since_monday)
+        
+        weeks = []
+        
+        # Get current week + next N weeks
+        for i in range(weeks_ahead + 1):  # +1 to include current week
+            week_start = current_week_start + timedelta(days=7 * i)
+            week_date = week_start.strftime('%d/%m/%Y')
+            week_end = week_start + timedelta(days=6)
+            schedule = ScheduleService.get_schedule_by_date(week_date)
+            
+            # Get month name in Portuguese
+            month_name = month_names_pt.get(week_start.month, week_start.strftime('%B'))
+            
+            weeks.append({
+                'week_date': week_date,
+                'week_start': week_start,
+                'week_end': week_end,
+                'month_name': month_name,
+                'schedule': schedule
+            })
+        
+        return weeks
+    
+    @staticmethod
     def list_schedules() -> List[Schedule]:
         """List all schedules"""
         conn = get_connection()

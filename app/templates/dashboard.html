@@ -1,29 +1,44 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Escalas do Mês{% endblock %}
+{% block title %}Dashboard - Próximas Escalas{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">📋 Escalas do Mês</h4>
+                <h4 class="mb-0">📋 Próximas Escalas </h4>
             </div>
             <div class="card-body">
                 {% if weeks %}
                     {% for week in weeks %}
-                        <div class="card mb-3 border-info">
-                            <div class="card-header bg-light">
-                                <strong>Semana de {{ week.week_start.strftime('%d') }} a {{ week.week_end.strftime('%d') }} de {{ week.month_name }}</strong>
-                                <small class="text-muted">({{ week.week_date }})</small>
-                            </div>
+                        {% set is_current_week = loop.index == 1 %}
+                        {% if is_current_week %}
+                            <div class="card mb-4 border-success border-3 shadow">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">
+                                        <span class="badge bg-light text-success me-2">📍 ESTA SEMANA</span>
+                                        <strong>{{ week.week_start.strftime('%d') }} a {{ week.week_end.strftime('%d') }} de {{ week.month_name }}</strong>
+                                    </h5>
+                                    <small class="opacity-75">Início: {{ week.week_date }}</small>
+                                </div>
+                        {% else %}
+                            <div class="card mb-3 border-primary">
+                                <div class="card-header bg-light border-bottom border-primary">
+                                    <h5 class="mb-0">
+                                        <span class="badge bg-primary me-2">Semana {{ loop.index }}</span>
+                                        <strong>{{ week.week_start.strftime('%d') }} a {{ week.week_end.strftime('%d') }} de {{ week.month_name }}</strong>
+                                    </h5>
+                                    <small class="text-muted">Início: {{ week.week_date }}</small>
+                                </div>
+                        {% endif %}
                             <div class="card-body">
                                 {% if week.schedule %}
                                     <div class="row">
                                         <div class="col-md-4">
                                             <div class="card mb-3 border-primary">
                                                 <div class="card-header bg-primary text-white">
-                                                    🎤 Microfone (2 pessoas)
+                                                    🎤 Microfone 
                                                 </div>
                                                 <div class="card-body">
                                                     {% set microfone = week.schedule.assignments | selectattr('role_name', 'equalto', 'MICROFONE') | list %}
@@ -41,9 +56,9 @@
                                         </div>
                                         
                                         <div class="col-md-4">
-                                            <div class="card mb-3 border-success">
-                                                <div class="card-header bg-success text-white">
-                                                    🔊 Sistema de Som (1 pessoa)
+                                            <div class="card mb-3 border-info">
+                                                <div class="card-header bg-info text-white">
+                                                    🔊 Sistema de Som
                                                 </div>
                                                 <div class="card-body">
                                                     {% set som = week.schedule.assignments | selectattr('role_name', 'equalto', 'SOM') | list %}
@@ -82,8 +97,8 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
-                                                    <div class="card border-info">
-                                                        <div class="card-header bg-info text-white">
+                                                    <div class="card border-success">
+                                                        <div class="card-header bg-success text-white">
                                                             🏛️ Indicador do Auditório
                                                         </div>
                                                         <div class="card-body">

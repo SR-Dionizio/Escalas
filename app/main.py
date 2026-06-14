@@ -31,8 +31,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    """Dashboard - Current month schedule (all weeks) - PUBLIC"""
-    weeks = ScheduleService.get_current_month_weeks()
+    """Dashboard - Current week and next 3 weeks - PUBLIC"""
+    weeks = ScheduleService.get_current_and_next_weeks(weeks_ahead=3)
     user = get_current_user(request)
     
     context = {

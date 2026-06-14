@@ -663,4 +663,94 @@ footer p {
 }
     color: var(--primary-blue) !important;
 }
+
+/* Week Header Styling - Visual Improvements */
+.card.border-success.border-3 {
+    border-width: 3px !important;
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2) !important;
+}
+
+.card.border-success > .card-header.bg-success {
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+    padding: 1.5rem 2rem;
+}
+
+.card.border-success > .card-header h5 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.card.border-success > .card-header .badge.bg-light {
+    background: white !important;
+    color: #10B981 !important;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.card.border-primary > .card-header.bg-light {
+    background: linear-gradient(135deg, #2D5BFF 0%, #1E3FCC 100%) !important;
+    border-bottom: none;
+    color: white !important;
+}
+
+.card.border-primary > .card-header h5 {
+    color: white !important;
+    font-size: 1.2rem;
+}
+
+.card.border-primary > .card-header h5 * {
+    color: white !important;
+}
+
+.card.border-primary > .card-header .badge.bg-primary {
+    background: white !important;
+    color: var(--primary-blue) !important;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.9rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card.border-primary > .card-header small {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Preserve original colors for role cards inside weeks */
+.card-body .card .card-header.bg-primary {
+    background: #2D5BFF !important;
+}
+
+.card-body .card .card-header.bg-success {
+    background: #10B981 !important;
+}
+
+.card-body .card .card-header.bg-warning {
+    background: #FFA500 !important;
+}
+
+.card-body .card .card-header.bg-info {
+    background: #3B82F6 !important;
+}
+
+/* Improve spacing between week cards */
+.card.mb-4 {
+    margin-bottom: 2rem !important;
+}
+
+.card.mb-3 {
+    margin-bottom: 1.5rem !important;
+}
+
 /* Made with Bob */
