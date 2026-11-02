@@ -128,8 +128,8 @@
                     {% endfor %}
                     
                     <div class="mt-3">
-                        <button class="btn btn-primary" onclick="printMonth()">
-                            🖨️ Imprimir Escalas do Mês
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#printRangeModal">
+                            🖨️ Imprimir Escalas
                         </button>
                     </div>
                 {% else %}
@@ -143,9 +143,96 @@
     </div>
 </div>
 
+<!-- Print Range Modal -->
+<div class="modal fade" id="printRangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🖨️ Imprimir Escalas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Escolha o período que deseja imprimir.</p>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold">Data inicial</label>
+                        <input type="date" class="form-control" id="printStartDate">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">Data final</label>
+                        <input type="date" class="form-control" id="printEndDate">
+                    </div>
+                </div>
+                <div class="mt-3 d-flex gap-2 flex-wrap">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="setPrintRange('month')">📅 Mês atual</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="setPrintRange('next30')">📅 Próximos 30 dias</button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="setPrintRange('next60')">📅 Próximos 60 dias</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="doPrint()">🖨️ Abrir Impressão</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function printMonth() {
-    window.location.href = '/print-month';
+// Pre-fill with current month on modal open
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('printRangeModal').addEventListener('show.bs.modal', function() {
+        setPrintRange('month');
+    });
+});
+
+function setPrintRange(preset) {
+    var today = new Date();
+    var start, end;
+
+    if (preset === 'month') {
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end   = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    } else if (preset === 'next30') {
+        start = today;
+        end   = new Date(today.getTime() + 29 * 86400000);
+    } else if (preset === 'next60') {
+        start = today;
+        end   = new Date(today.getTime() + 59 * 86400000);
+    }
+
+    document.getElementById('printStartDate').value = toInputDate(start);
+    document.getElementById('printEndDate').value   = toInputDate(end);
+}
+
+function toInputDate(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+}
+
+function doPrint() {
+    var startVal = document.getElementById('printStartDate').value;
+    var endVal   = document.getElementById('printEndDate').value;
+
+    if (!startVal || !endVal) {
+        alert('Selecione as datas de início e fim.');
+        return;
+    }
+    if (startVal > endVal) {
+        alert('A data inicial deve ser anterior à data final.');
+        return;
+    }
+
+    // Convert YYYY-MM-DD → DD/MM/YYYY for the backend
+    function fmt(v) {
+        var [y, m, d] = v.split('-');
+        return d + '/' + m + '/' + y;
+    }
+
+    var url = '/print-month?start_date=' + encodeURIComponent(fmt(startVal))
+                         + '&end_date='   + encodeURIComponent(fmt(endVal));
+    window.open(url, '_blank');
 }
 </script>
 {% endblock %}

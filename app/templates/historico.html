@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico de Escalas{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+    <!-- Estatísticas de participação -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">📊 Estatísticas de Participação</h4>
+            </div>
+            <div class="card-body">
+                <div id="statsLoading" class="text-center text-muted py-3">Carregando...</div>
+                <div id="statsContainer" style="display:none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Voluntário</th>
+                                    <th class="text-center">🎤 Microfone</th>
+                                    <th class="text-center">🔊 Som</th>
+                                    <th class="text-center">🚪 Ind. Entrada</th>
+                                    <th class="text-center">🏛️ Ind. Auditório</th>
+                                    <th class="text-center fw-bold">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Histórico de escalas -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">📅 Últimas Escalas</h4>
+                <select class="form-select form-select-sm w-auto" id="limitSelect" onchange="loadHistory()">
+                    <option value="10">Últimas 10</option>
+                    <option value="20" selected>Últimas 20</option>
+                    <option value="50">Últimas 50</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <div id="historyLoading" class="text-center text-muted py-3">Carregando...</div>
+                <div id="historyContainer" style="display:none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Semana</th>
+                                    <th>🎤 Microfone</th>
+                                    <th>🔊 Som</th>
+                                    <th>🚪 Ind. Entrada</th>
+                                    <th>🏛️ Ind. Auditório</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function loadStats() {
+    fetch('/api/history/stats')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('statsLoading').style.display = 'none';
+            const tbody = document.getElementById('statsTable');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhum dado disponível</td></tr>';
+            } else {
+                data.forEach(v => {
+                    const mic = v.roles['MICROFONE'] || 0;
+                    const som = v.roles['SOM'] || 0;
+                    const ent = v.roles['INDICADOR_ENTRADA'] || 0;
+                    const aud = v.roles['INDICADOR_AUDITORIO'] || 0;
+                    const total = v.total;
+
+                    const maxBadge = total > 0 ? 'bg-primary' : 'bg-secondary';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${v.nome}</strong></td>
+                            <td class="text-center">${mic > 0 ? `<span class="badge bg-primary">${mic}</span>` : '<span class="text-muted">-</span>'}</td>
+                            <td class="text-center">${som > 0 ? `<span class="badge bg-info">${som}</span>` : '<span class="text-muted">-</span>'}</td>
+                            <td class="text-center">${ent > 0 ? `<span class="badge bg-warning text-dark">${ent}</span>` : '<span class="text-muted">-</span>'}</td>
+                            <td class="text-center">${aud > 0 ? `<span class="badge bg-success">${aud}</span>` : '<span class="text-muted">-</span>'}</td>
+                            <td class="text-center"><span class="badge ${maxBadge} fs-6">${total}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+
+            document.getElementById('statsContainer').style.display = 'block';
+        })
+        .catch(() => {
+            document.getElementById('statsLoading').textContent = 'Erro ao carregar estatísticas.';
+        });
+}
+
+function loadHistory() {
+    const limit = document.getElementById('limitSelect').value;
+    document.getElementById('historyLoading').style.display = 'block';
+    document.getElementById('historyContainer').style.display = 'none';
+
+    fetch(`/api/history/schedules?limit=${limit}`)
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('historyLoading').style.display = 'none';
+            const tbody = document.getElementById('historyTable');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Nenhuma escala cadastrada</td></tr>';
+            } else {
+                data.forEach(s => {
+                    const mic = s.assignments.filter(a => a.role_name === 'MICROFONE').map(a => a.volunteer_name).join(', ') || '-';
+                    const som = s.assignments.filter(a => a.role_name === 'SOM').map(a => a.volunteer_name).join(', ') || '-';
+                    const ent = s.assignments.filter(a => a.role_name === 'INDICADOR_ENTRADA').map(a => a.volunteer_name).join(', ') || '-';
+                    const aud = s.assignments.filter(a => a.role_name === 'INDICADOR_AUDITORIO').map(a => a.volunteer_name).join(', ') || '-';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${s.week_date}</strong></td>
+                            <td>${mic}</td>
+                            <td>${som}</td>
+                            <td>${ent}</td>
+                            <td>${aud}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            document.getElementById('historyContainer').style.display = 'block';
+        })
+        .catch(() => {
+            document.getElementById('historyLoading').textContent = 'Erro ao carregar histórico.';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadHistory();
+});
+</script>
+{% endblock %}

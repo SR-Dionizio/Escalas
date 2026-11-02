@@ -9,7 +9,8 @@ import json
 from app.database import init_db, get_connection
 from app.models import Volunteer, Schedule
 from app.services import (
-    VolunteerService, RoleService, ScheduleService, UnavailableService
+    VolunteerService, RoleService, ScheduleService, UnavailableService,
+    HistoryService, AutoScheduleService
 )
 from app.auth import (
     verify_password, create_access_token, require_auth,
@@ -44,18 +45,22 @@ async def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", context)
 
 @app.get("/print-month", response_class=HTMLResponse)
-async def print_month(request: Request):
-    """Print current month schedule - PUBLIC"""
-    weeks = ScheduleService.get_current_month_weeks()
-    
-    if not weeks:
-        raise HTTPException(status_code=404, detail="Nenhuma escala para este mês")
-    
+async def print_month(request: Request, start_date: str = None, end_date: str = None):
+    """Print schedule for a date range - PUBLIC.
+    start_date / end_date: DD/MM/YYYY (optional, defaults to current month)
+    """
+    if start_date and end_date:
+        weeks = ScheduleService.get_weeks_in_range(start_date, end_date)
+    else:
+        weeks = ScheduleService.get_current_month_weeks()
+
     context = {
         "request": request,
-        "weeks": weeks
+        "weeks": weeks,
+        "start_date": start_date or "",
+        "end_date": end_date or "",
     }
-    
+
     return templates.TemplateResponse("print.html", context)
 
 # Authentication Routes
@@ -326,9 +331,19 @@ async def delete_schedule(request: Request, schedule_id: int):
 
 # API Endpoints - Unavailable
 
+@app.get("/api/unavailable/{volunteer_id}")
+async def list_unavailable(volunteer_id: int):
+    """List unavailable dates for a volunteer"""
+    volunteer = VolunteerService.get_volunteer(volunteer_id)
+    if not volunteer:
+        raise HTTPException(status_code=404, detail="Voluntário não encontrado")
+    dates = UnavailableService.list_unavailable(volunteer_id)
+    return {"volunteer_id": volunteer_id, "dates": dates}
+
 @app.post("/api/unavailable")
-async def add_unavailable(data: dict):
-    """Mark volunteer as unavailable on a date"""
+async def add_unavailable(request: Request, data: dict):
+    """Mark volunteer as unavailable on a date - PROTECTED"""
+    require_auth(request)
     volunteer_id = data.get("volunteer_id")
     unavailable_date = data.get("unavailable_date")
     
@@ -337,6 +352,56 @@ async def add_unavailable(data: dict):
     
     UnavailableService.add_unavailable(volunteer_id, unavailable_date)
     return {"message": "Indisponibilidade registrada com sucesso"}
+
+@app.delete("/api/unavailable")
+async def remove_unavailable(request: Request, data: dict):
+    """Remove unavailable date for a volunteer - PROTECTED"""
+    require_auth(request)
+    volunteer_id = data.get("volunteer_id")
+    unavailable_date = data.get("unavailable_date")
+    
+    if not volunteer_id or not unavailable_date:
+        raise HTTPException(status_code=400, detail="volunteer_id e unavailable_date são obrigatórios")
+    
+    UnavailableService.remove_unavailable(volunteer_id, unavailable_date)
+    return {"message": "Indisponibilidade removida com sucesso"}
+
+# API Endpoints - Auto Schedule
+
+@app.post("/api/schedules/auto-generate")
+async def auto_generate_schedule(request: Request, data: dict):
+    """Auto-generate schedule for a week using fair-rotation - PROTECTED"""
+    require_auth(request)
+    
+    week_date = data.get("week_date")
+    if not week_date:
+        raise HTTPException(status_code=400, detail="week_date é obrigatório (formato DD/MM/YYYY)")
+    
+    existing = ScheduleService.get_schedule_by_date(week_date)
+    if existing:
+        raise HTTPException(status_code=409, detail="Escala para esta semana já existe")
+    
+    try:
+        assignments = AutoScheduleService.generate(week_date)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    
+    schedule = ScheduleService.create_schedule(week_date, assignments)
+    return schedule.to_dict()
+
+# API Endpoints - History
+
+@app.get("/api/history/stats")
+async def history_stats():
+    """Get volunteer participation statistics"""
+    stats = HistoryService.get_volunteer_stats()
+    return stats
+
+@app.get("/api/history/schedules")
+async def history_schedules(limit: int = 20):
+    """Get recent schedules"""
+    schedules = HistoryService.get_recent_schedules(limit)
+    return schedules
 
 # Web Pages
 
@@ -369,6 +434,26 @@ async def schedules_page(request: Request):
         "schedules": [s.to_dict() for s in schedules],
         "volunteers": [v.to_dict() for v in volunteers],
         "roles": [r.to_dict() for r in roles],
+        "user": user
+    })
+
+@app.get("/historico", response_class=HTMLResponse)
+async def history_page(request: Request):
+    """History page with volunteer statistics - PROTECTED"""
+    user = require_auth(request)
+    return templates.TemplateResponse("historico.html", {
+        "request": request,
+        "user": user
+    })
+
+@app.get("/indisponibilidades", response_class=HTMLResponse)
+async def unavailable_page(request: Request):
+    """Unavailability management page - PROTECTED"""
+    user = require_auth(request)
+    volunteers = VolunteerService.list_volunteers(ativo_only=True)
+    return templates.TemplateResponse("indisponibilidades.html", {
+        "request": request,
+        "volunteers": [v.to_dict() for v in volunteers],
         "user": user
     })
 

@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Gerenciador de Escalas{% endblock %}</title>
+    <script>
+        (function() {
+            var saved = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=9.0">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=10.0">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -16,7 +22,10 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-1">
+                        <button id="darkModeToggle" title="Alternar modo noturno">🌙</button>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/">Dashboard</a>
                     </li>
@@ -26,6 +35,12 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/escalas">Escalas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/indisponibilidades">🚫 Indisponibilidades</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/historico">📊 Histórico</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -59,5 +74,21 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('darkModeToggle');
+        if (!btn) return;
+        // Set correct icon on load
+        var current = document.documentElement.getAttribute('data-theme');
+        btn.textContent = current === 'dark' ? '☀️' : '🌙';
+        btn.addEventListener('click', function() {
+            var html = document.documentElement;
+            var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            btn.textContent = next === 'dark' ? '☀️' : '🌙';
+        });
+    });
+    </script>
 </body>
 </html>

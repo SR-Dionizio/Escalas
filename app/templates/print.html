@@ -3,198 +3,273 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Imprimir Escalas do Mês</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Imprimir Escalas</title>
     <style>
-        @page {
-            size: A4;
-            margin: 15mm;
-        }
-        
-        @media print {
-            body {
-                background: white;
-                margin: 0;
-                padding: 0;
-            }
-            .no-print {
-                display: none;
-            }
-            .page-break {
-                page-break-after: always;
-            }
-        }
-        
+        /*
+         * A4 portrait = 210mm wide, 297mm tall.
+         * With 12mm margins each side → usable width = 186mm ≈ 703px at 96dpi.
+         * We set the page to exactly that so the browser preview matches print.
+         */
+        @page { size: A4 portrait; margin: 12mm; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #fff;
+            color: #111;
+            /* Lock body width to A4 usable width so browser and print match */
+            width: 186mm;
+            margin: 0 auto;
         }
-        
-        .print-container {
-            max-width: 100%;
-            margin: 0;
-            padding: 0;
+
+        /* ── Toolbar (screen only) ── */
+        .toolbar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: #f5f7ff;
+            border-bottom: 2px solid #2D5BFF;
+            margin-bottom: 18px;
         }
-        
-        .print-title {
+        .toolbar button {
+            padding: 7px 18px;
+            border: none;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-print { background: #2D5BFF; color: #fff; }
+        .btn-close  { background: #6B7280; color: #fff; }
+        .toolbar-info { font-size: 12px; color: #555; margin-left: 4px; }
+
+        @media print { .toolbar { display: none; } }
+
+        /* ── Document title ── */
+        .doc-title {
             text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 8px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding-bottom: 5px;
+            margin-bottom: 3px;
+            border-bottom: 2.5px solid #111;
+            /* font-size set by JS */
         }
-        
-        .week-section {
-            margin-bottom: 15px;
-            page-break-inside: avoid;
-            border: 1px solid #333;
-            padding: 8px;
+        .doc-period {
+            text-align: center;
+            font-size: 0.68em;
+            color: #555;
+            margin-bottom: 12px;
+            letter-spacing: 0.4px;
         }
-        
-        .week-header {
-            background: #e0e0e0;
-            padding: 6px;
-            margin-bottom: 8px;
-            font-weight: bold;
-            font-size: 12px;
-            border-bottom: 1px solid #333;
+
+        /* ── Main table ── */
+        table.schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            /* auto layout so columns share space naturally */
+            table-layout: auto;
         }
-        
-        .roles-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+
+        /* thead */
+        table.schedule-table thead th {
+            font-size: 0.68em;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #111;
+            padding: 5px 6px 4px;
+            border-top: 2.5px solid #111;
+            border-bottom: 1.5px solid #111;
+            /* wrap is fine — we want full labels */
+            white-space: normal;
+            vertical-align: bottom;
         }
-        
-        .role-section {
-            border: 1px solid #ddd;
-            padding: 6px;
-            background: #f9f9f9;
+        /* Give the week column a bit more room */
+        table.schedule-table thead th.col-week { width: 22%; }
+
+        /* tbody rows */
+        table.schedule-table tbody td {
+            padding: 6px 6px;
+            vertical-align: top;
+            border-bottom: 1px solid #d8d8d8;
+            line-height: 1.4;
+            word-break: break-word;
         }
-        
-        .role-title {
-            font-weight: bold;
-            font-size: 11px;
-            margin-bottom: 4px;
-            padding-bottom: 3px;
-            border-bottom: 1px solid #999;
+
+        /* light zebra — minimal ink */
+        table.schedule-table tbody tr:nth-child(even) td {
+            background: #f8f8f8;
         }
-        
-        .role-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
+
+        /* week cell */
+        td.cell-week {
+            font-weight: 800;
+            border-right: 1.5px solid #bbb;
         }
-        
-        .role-list li {
-            padding: 2px 0;
-            font-size: 10px;
+        td.cell-week .wdates {
+            display: block;
+            font-weight: 400;
+            font-size: 0.8em;
+            color: #555;
+            margin-top: 1px;
         }
-        
-        .indicators-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 8px;
+
+        /* role cells */
+        td.cell-role {
+            border-right: 1px solid #ddd;
+        }
+        td.cell-role:last-child { border-right: none; }
+        td.cell-role .name  { display: block; }
+        td.cell-role .empty { color: #bbb; font-style: italic; font-size: 0.85em; }
+
+        /* no schedule */
+        td.cell-empty {
+            font-style: italic;
+            color: #bbb;
+            font-size: 0.8em;
+        }
+
+        /* ── Page break ── */
+        .page-break { page-break-after: always; height: 0; }
+
+        /* ── Footer ── */
+        .print-footer {
+            margin-top: 10px;
+            border-top: 1px solid #ddd;
+            padding-top: 3px;
+            text-align: center;
+            font-size: 0.6em;
+            color: #bbb;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
 <body>
-    <div class="no-print mb-3 mt-3">
-        <div class="container">
-            <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
-            <button class="btn btn-secondary" onclick="window.history.back()">← Voltar</button>
-        </div>
-    </div>
 
-    <div class="print-container">
-        <div class="print-title">ESCALAS DO MÊS</div>
-
-        {% if weeks %}
-            {% for week in weeks %}
-                <div class="week-section">
-                    <div class="week-header">
-                        Semana de {{ week.week_start.strftime('%d') }} a {{ week.week_end.strftime('%d') }} de {{ week.month_name.upper() }} ({{ week.week_date }})
-                    </div>
-
-                    {% if week.schedule %}
-                        <div class="roles-grid">
-                            <div class="role-section">
-                                <div class="role-title">🎤 Microfone (2):</div>
-                                <ul class="role-list">
-                                    {% set microfone = week.schedule.assignments | selectattr('role_name', 'equalto', 'MICROFONE') | list %}
-                                    {% if microfone %}
-                                        {% for assignment in microfone %}
-                                            <li>• {{ assignment.volunteer_name }}</li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li><em>Não definido</em></li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-
-                            <div class="role-section">
-                                <div class="role-title">🔊 Som (1):</div>
-                                <ul class="role-list">
-                                    {% set som = week.schedule.assignments | selectattr('role_name', 'equalto', 'SOM') | list %}
-                                    {% if som %}
-                                        {% for assignment in som %}
-                                            <li>• {{ assignment.volunteer_name }}</li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li><em>Não definido</em></li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="indicators-row">
-                            <div class="role-section">
-                                <div class="role-title">🚪 Indicador Entrada:</div>
-                                <ul class="role-list">
-                                    {% set entrada = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR_ENTRADA') | list %}
-                                    {% if entrada %}
-                                        {% for assignment in entrada %}
-                                            <li>• {{ assignment.volunteer_name }}</li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li><em>Não definido</em></li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-
-                            <div class="role-section">
-                                <div class="role-title">🏛️ Indicador Auditório:</div>
-                                <ul class="role-list">
-                                    {% set auditorio = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR_AUDITORIO') | list %}
-                                    {% if auditorio %}
-                                        {% for assignment in auditorio %}
-                                            <li>• {{ assignment.volunteer_name }}</li>
-                                        {% endfor %}
-                                    {% else %}
-                                        <li><em>Não definido</em></li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div style="font-style: italic; color: #666; padding: 10px;">
-                            ⚠️ Nenhuma escala definida para esta semana
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        {% else %}
-            <div class="alert alert-warning">
-                <strong>⚠️ Nenhuma escala definida para este mês</strong>
-            </div>
+<div class="toolbar">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+    <button class="btn-close"  onclick="window.close()">✕ Fechar</button>
+    <span class="toolbar-info">
+        {% if start_date and end_date %}
+            Período: <strong>{{ start_date }}</strong> até <strong>{{ end_date }}</strong> &mdash;
         {% endif %}
-    </div>
+        <strong id="weekCount">{{ weeks|length }}</strong> semana(s)
+    </span>
+</div>
 
-    <script>
-        // Auto-print on load (optional - comment if you want manual trigger)
-        // window.print();
-    </script>
+<div id="printWrap">
+
+    <div class="doc-title" id="docTitle">Escalas de Voluntários</div>
+    {% if start_date and end_date %}
+        <div class="doc-period">{{ start_date }} &nbsp;até&nbsp; {{ end_date }}</div>
+    {% endif %}
+
+    {% if weeks %}
+    <table class="schedule-table" id="scheduleTable">
+        <thead id="mainThead">
+            <tr>
+                <th class="col-week">Semana</th>
+                <th>🎤 Microfone</th>
+                <th>🔊 Som</th>
+                <th>🚪 Ind. Entrada</th>
+                <th>🏛️ Ind. Auditório</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for week in weeks %}
+            {% set microfone = week.schedule.assignments | selectattr('role_name', 'equalto', 'MICROFONE') | list if week.schedule else [] %}
+            {% set som       = week.schedule.assignments | selectattr('role_name', 'equalto', 'SOM') | list if week.schedule else [] %}
+            {% set entrada   = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR_ENTRADA') | list if week.schedule else [] %}
+            {% set auditorio = week.schedule.assignments | selectattr('role_name', 'equalto', 'INDICADOR_AUDITORIO') | list if week.schedule else [] %}
+
+            <tr>
+                <td class="cell-week">
+                    {{ week.month_name }}
+                    <span class="wdates">{{ week.week_start.strftime('%d/%m') }} – {{ week.week_end.strftime('%d/%m/%Y') }}</span>
+                </td>
+                {% if week.schedule %}
+                    <td class="cell-role">
+                        {% if microfone %}{% for a in microfone %}<span class="name">{{ a.volunteer_name }}</span>{% endfor %}
+                        {% else %}<span class="empty">—</span>{% endif %}
+                    </td>
+                    <td class="cell-role">
+                        {% if som %}{% for a in som %}<span class="name">{{ a.volunteer_name }}</span>{% endfor %}
+                        {% else %}<span class="empty">—</span>{% endif %}
+                    </td>
+                    <td class="cell-role">
+                        {% if entrada %}{% for a in entrada %}<span class="name">{{ a.volunteer_name }}</span>{% endfor %}
+                        {% else %}<span class="empty">—</span>{% endif %}
+                    </td>
+                    <td class="cell-role">
+                        {% if auditorio %}{% for a in auditorio %}<span class="name">{{ a.volunteer_name }}</span>{% endfor %}
+                        {% else %}<span class="empty">—</span>{% endif %}
+                    </td>
+                {% else %}
+                    <td class="cell-empty" colspan="4">⚠️ Nenhuma escala definida para esta semana</td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p style="text-align:center;color:#bbb;margin-top:40px;">
+            ⚠️ Nenhuma escala encontrada para o período selecionado.
+        </p>
+    {% endif %}
+
+    <div class="print-footer">
+        Sistema de Escalas de Voluntários &mdash; impresso em <span id="printDate"></span>
+    </div>
+</div>
+
+<script>
+(function () {
+    document.getElementById('printDate').textContent = new Date().toLocaleDateString('pt-BR');
+
+    var total = parseInt(document.getElementById('weekCount').textContent) || 0;
+    if (total === 0) return;
+
+    /*
+     * Layout rules:
+     *  – Always try to fit everything on as few pages as possible.
+     *  – Max 5 semanas por página (fonte mínima 13px).
+     *  – Se total ≤ 5 → tudo numa página, fonte adaptada.
+     *  – Se total > 5 → divide em páginas de 5 (última pode ter menos).
+     *
+     * Font map (px): garante legibilidade mínima ≥ 13px
+     *   1 → 22, 2 → 20, 3 → 17, 4 → 15, 5 → 13
+     */
+    var perPage = total <= 5 ? total : 5;
+
+    var fontMap = { 1: 22, 2: 20, 3: 17, 4: 15, 5: 13 };
+    var basePx  = fontMap[perPage] || 13;
+
+    document.body.style.fontSize = basePx + 'px';
+    var title = document.getElementById('docTitle');
+    if (title) title.style.fontSize = Math.round(basePx * 1.55) + 'px';
+
+    // Insere quebras de página após cada grupo de `perPage` semanas
+    if (total > perPage) {
+        var tbody = document.querySelector('#scheduleTable tbody');
+        var rows  = Array.from(tbody.querySelectorAll('tr'));
+
+        // Percorre de trás para frente para não deslocar índices
+        for (var i = rows.length - 1; i >= 0; i--) {
+            if ((i + 1) % perPage === 0 && i < rows.length - 1) {
+                var br = document.createElement('tr');
+                br.className = 'page-break';
+                br.innerHTML = '<td colspan="5"></td>';
+                rows[i].after(br);
+            }
+        }
+    }
+})();
+</script>
+
 </body>
 </html>

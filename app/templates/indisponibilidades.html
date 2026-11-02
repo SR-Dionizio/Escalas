@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Indisponibilidades{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">🚫 Indisponibilidades</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Registre as datas em que cada voluntário não estará disponível. O sistema de geração automática irá ignorá-los nessas datas.</p>
+
+                <div class="row mb-4">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Voluntário</label>
+                        <select class="form-select" id="volunteerSelect" onchange="loadVolunteerDates()">
+                            <option value="">-- Selecione um voluntário --</option>
+                            {% for v in volunteers %}
+                            <option value="{{ v.id }}">{{ v.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Data indisponível</label>
+                        <input type="date" class="form-control" id="unavailableDate">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-warning w-100" onclick="addUnavailable()">
+                            ➕ Marcar Indisponível
+                        </button>
+                    </div>
+                </div>
+
+                <div id="datesSection" style="display:none;">
+                    <h5 class="mb-3">📅 Datas registradas para <span id="volunteerNameDisplay" class="text-warning"></span></h5>
+                    <div id="datesList" class="row g-2"></div>
+                </div>
+
+                <div id="noVolunteerMsg" class="text-muted text-center py-4">
+                    <p>Selecione um voluntário para ver e gerenciar suas indisponibilidades.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentVolunteerId = null;
+let currentVolunteerName = '';
+
+function loadVolunteerDates() {
+    const select = document.getElementById('volunteerSelect');
+    currentVolunteerId = select.value;
+    currentVolunteerName = select.options[select.selectedIndex]?.text || '';
+
+    if (!currentVolunteerId) {
+        document.getElementById('datesSection').style.display = 'none';
+        document.getElementById('noVolunteerMsg').style.display = 'block';
+        return;
+    }
+
+    document.getElementById('noVolunteerMsg').style.display = 'none';
+    document.getElementById('volunteerNameDisplay').textContent = currentVolunteerName;
+
+    fetch(`/api/unavailable/${currentVolunteerId}`)
+        .then(r => r.json())
+        .then(data => {
+            renderDates(data.dates || []);
+            document.getElementById('datesSection').style.display = 'block';
+        })
+        .catch(() => showToast('Erro ao carregar datas', 'danger'));
+}
+
+function renderDates(dates) {
+    const container = document.getElementById('datesList');
+    container.innerHTML = '';
+
+    if (dates.length === 0) {
+        container.innerHTML = '<div class="col-12"><p class="text-muted">Nenhuma indisponibilidade registrada.</p></div>';
+        return;
+    }
+
+    dates.forEach(dateStr => {
+        // dateStr format: YYYY-MM-DD
+        const [y, m, d] = dateStr.split('-');
+        const formatted = `${d}/${m}/${y}`;
+        const col = document.createElement('div');
+        col.className = 'col-auto';
+        col.innerHTML = `
+            <span class="badge bg-danger fs-6 p-2">
+                📅 ${formatted}
+                <button type="button" class="btn-close btn-close-white ms-2" style="font-size:0.6rem;"
+                    onclick="removeUnavailable('${dateStr}', this)"></button>
+            </span>
+        `;
+        container.appendChild(col);
+    });
+}
+
+function addUnavailable() {
+    if (!currentVolunteerId) {
+        showToast('Selecione um voluntário primeiro', 'warning');
+        return;
+    }
+
+    const dateInput = document.getElementById('unavailableDate').value;
+    if (!dateInput) {
+        showToast('Selecione uma data', 'warning');
+        return;
+    }
+
+    fetch('/api/unavailable', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            volunteer_id: parseInt(currentVolunteerId),
+            unavailable_date: dateInput
+        })
+    })
+    .then(r => {
+        if (!r.ok) return r.json().then(e => { throw new Error(e.detail); });
+        return r.json();
+    })
+    .then(() => {
+        document.getElementById('unavailableDate').value = '';
+        showToast('Indisponibilidade registrada!', 'success');
+        loadVolunteerDates();
+    })
+    .catch(e => showToast('Erro: ' + e.message, 'danger'));
+}
+
+function removeUnavailable(dateStr, btn) {
+    if (!currentVolunteerId) return;
+
+    fetch('/api/unavailable', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            volunteer_id: parseInt(currentVolunteerId),
+            unavailable_date: dateStr
+        })
+    })
+    .then(r => {
+        if (!r.ok) return r.json().then(e => { throw new Error(e.detail); });
+        return r.json();
+    })
+    .then(() => {
+        showToast('Indisponibilidade removida!', 'success');
+        loadVolunteerDates();
+    })
+    .catch(e => showToast('Erro: ' + e.message, 'danger'));
+}
+</script>
+{% endblock %}
