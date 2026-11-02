@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Alterar Senha{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-6 col-lg-5">
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h4 class="mb-0">🔐 Alterar Senha</h4>
@@ -41,19 +41,18 @@
                         <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6">
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Alterar Senha</button>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Salvar Nova Senha</button>
                         <a href="/" class="btn btn-secondary">Cancelar</a>
                     </div>
                 </form>
 
-                <div class="mt-4">
-                    <h6>Dicas para uma senha forte:</h6>
-                    <ul class="small text-muted">
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="fw-bold">Dicas para uma senha forte:</h6>
+                    <ul class="small text-muted mb-0">
                         <li>Use pelo menos 8 caracteres</li>
                         <li>Misture letras maiúsculas e minúsculas</li>
                         <li>Inclua números e símbolos</li>
-                        <li>Evite informações pessoais</li>
                     </ul>
                 </div>
             </div>
