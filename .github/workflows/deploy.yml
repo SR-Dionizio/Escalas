@@ -42,24 +42,25 @@ jobs:
             --parameters '{
               "commands":[
                 "set -e",
-                "echo \"[1/11] Stopping existing container...\"",
+                "echo \"[1/10] Stopping existing container...\"",
                 "sudo docker stop escalas || true",
                 "sudo docker rm escalas || true",
-                "echo \"[2/11] Cleaning old files...\"",
+                "echo \"[2/10] Cleaning old files...\"",
                 "sudo rm -rf /opt/escalas",
-                "echo \"[3/11] Cloning repository...\"",
+                "echo \"[3/10] Cloning repository...\"",
                 "sudo git clone https://github.com/SR-Dionizio/Escalas.git /opt/escalas",
                 "cd /opt/escalas",
-                "echo \"[4/11] Building Docker image...\"",
+                "echo \"[4/10] Building Docker image...\"",
                 "sudo docker build -t escalas:latest . || { echo \"Docker build failed!\"; exit 1; }",
-                "echo \"[5/11] Creating data directory...\"",
+                "echo \"[5/10] Creating data directory...\"",
                 "sudo mkdir -p /opt/escalas-data",
-                "echo \"[6/11] Starting container...\"",
+                "echo \"[6/10] Starting container...\"",
                 "sudo docker run -d --restart unless-stopped --name escalas -p 8000:8000 -e DATABASE_PATH=/app-data/escalas.db -v /opt/escalas-data:/app-data escalas:latest || { echo \"Container start failed!\"; exit 1; }",
-                "echo \"[7/11] Installing Nginx and Certbot...\"",
+                "echo \"[7/10] Ensuring Nginx and Certbot are installed...\"",
                 "sudo dnf install -y nginx certbot python3-certbot-nginx",
-                "echo \"[8/11] Configuring Nginx...\"",
-                "sudo tee /etc/nginx/conf.d/escalas.conf > /dev/null <<'NGINX_EOF'",
+                "echo \"[8/10] Configuring Nginx if not configured...\"",
+                "if [ ! -f /etc/nginx/conf.d/escalas.conf ]; then",
+                "    sudo tee /etc/nginx/conf.d/escalas.conf > /dev/null <<\"NGINX_EOF\"",
                 "server {",
                 "    listen 80;",
                 "    listen [::]:80;",
@@ -74,22 +75,23 @@ jobs:
                 "    }",
                 "}",
                 "NGINX_EOF",
-                "echo \"[9/11] Testing Nginx configuration...\"",
+                "fi",
+                "if [ -f /etc/letsencrypt/live/escalas.click/fullchain.pem ]; then",
+                "    sudo certbot --nginx --reinstall --redirect --non-interactive --agree-tos -m admin@escalas.click -d escalas.click -d www.escalas.click || true",
+                "else",
+                "    sudo certbot --nginx --redirect --non-interactive --agree-tos -m admin@escalas.click -d escalas.click -d www.escalas.click || true",
+                "fi",
+                "echo \"[9/10] Testing and reloading Nginx...\"",
                 "sudo nginx -t",
-                "echo \"[10/11] Restarting Nginx...\"",
                 "sudo systemctl restart nginx",
                 "sudo systemctl enable nginx",
-                "echo \"[11/13] Checking services...\"",
-                "sudo docker ps | grep escalas || { echo \"Container not running!\"; exit 1; }",
-                "sudo systemctl is-active nginx || { echo \"Nginx not running!\"; exit 1; }",
-                "echo \"[12/13] Configuring SSL with Certbot...\"",
-                "sudo certbot --nginx -d escalas.click -d www.escalas.click --non-interactive --agree-tos --email ${{ secrets.CERTBOT_EMAIL || 'admin@escalas.click' }} --redirect || echo \"⚠️  SSL configuration failed, continuing without HTTPS\"",
-                "echo \"[13/13] Enabling auto-renewal...\"",
                 "sudo systemctl enable certbot-renew.timer || true",
                 "sudo systemctl start certbot-renew.timer || true",
-                "echo \"✅ Deployment completed successfully!\"",
-                "echo \"🌐 HTTP: http://escalas.click\"",
-                "echo \"🔐 HTTPS: https://escalas.click\""
+                "echo \"[10/10] Checking services...\"",
+                "sudo docker ps | grep escalas || { echo \"Container not running!\"; exit 1; }",
+                "sudo systemctl is-active nginx || { echo \"Nginx not running!\"; exit 1; }",
+                "echo \"Deployment completed successfully!\"",
+                "echo \"URL: https://escalas.click\""
               ]
             }' \
             --query "Command.CommandId" \
@@ -145,9 +147,9 @@ jobs:
           echo "Final deployment status: $STATUS"
 
           if [ "$STATUS" != "Success" ]; then
-            echo "❌ Deployment FAILED!"
+            echo "Deployment FAILED!"
             echo "Check the logs above for details."
             exit 1
           fi
 
-          echo "✅ Deployment completed successfully!"
+          echo "Deployment completed successfully!"
